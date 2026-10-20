@@ -28,6 +28,8 @@ pnpm-debug.log*
 # Uploads (local development storage)
 backend/uploads/
 !backend/uploads/.gitkeep
+backend/uploads-test/
+uploads-test/
 
 # OS / editor
 .DS_Store

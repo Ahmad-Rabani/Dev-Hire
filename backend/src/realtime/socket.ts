@@ -19,6 +19,10 @@ export function userRoom(userId: string): string {
 /**
  * Attach Socket.IO to the existing HTTP server.
  * Auth: access token in handshake.auth.token (never in query string).
+ *
+ * Scaling: the default in-memory adapter is correct for a **single** API instance.
+ * Multi-instance deploys need sticky sessions and/or `@socket.io/redis-adapter`
+ * with REDIS_URL (documented in docs/deployment.md) before enabling horizontal scale.
  */
 export function initSocketServer(httpServer: HttpServer): Server {
   io = new Server(httpServer, {

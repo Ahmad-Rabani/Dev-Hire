@@ -53,8 +53,17 @@ export function EditJobPage({ id }: EditJobPageProps) {
       errorMessage={errorMessage}
       onSubmit={async (values) => {
         setErrorMessage(null);
-        const { status: _status, ...rest } = values;
-        await mutation.mutateAsync(rest);
+        await mutation.mutateAsync({
+          title: values.title,
+          description: values.description,
+          skills: values.skills,
+          budgetType: values.budgetType,
+          budgetMin: values.budgetMin,
+          budgetMax: values.budgetMax,
+          currency: values.currency,
+          deadline: values.deadline,
+          attachmentUploadIds: values.attachmentUploadIds,
+        });
       }}
     />
   );

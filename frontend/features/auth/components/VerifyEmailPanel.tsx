@@ -12,27 +12,24 @@ export function VerifyEmailPanel() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token') ?? '';
   const setUser = useAuthStore((s) => s.setUser);
-  const user = useAuthStore((s) => s.user);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    token ? null : 'Missing verification token.',
+  );
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(Boolean(token));
 
   useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      setError('Missing verification token.');
-      return;
-    }
+    if (!token) return;
 
     let cancelled = false;
     void (async () => {
       try {
         const verifiedUser = await verifyEmail(token);
-        if (!cancelled) {
-          setSuccess(true);
-          if (user && user.id === verifiedUser.id) {
-            setUser(verifiedUser);
-          }
+        if (cancelled) return;
+        setSuccess(true);
+        const current = useAuthStore.getState().user;
+        if (current && current.id === verifiedUser.id) {
+          setUser(verifiedUser);
         }
       } catch (err) {
         if (!cancelled) {
@@ -46,7 +43,7 @@ export function VerifyEmailPanel() {
     return () => {
       cancelled = true;
     };
-  }, [token, setUser, user]);
+  }, [token, setUser]);
 
   if (loading) {
     return (

@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/authenticate';
+import { requireTrustedOrigin } from '../../middleware/csrfOrigin';
 import {
   loginRateLimiter,
   passwordResetRateLimiter,
+  refreshRateLimiter,
   registerRateLimiter,
 } from '../../middleware/rateLimit';
 import { validate } from '../../middleware/validate';
@@ -26,9 +28,14 @@ authRouter.post(
 
 authRouter.post('/login', loginRateLimiter, validate(loginSchema), authController.login);
 
-authRouter.post('/refresh', authController.refresh);
+authRouter.post(
+  '/refresh',
+  refreshRateLimiter,
+  requireTrustedOrigin,
+  authController.refresh,
+);
 
-authRouter.post('/logout', authController.logout);
+authRouter.post('/logout', requireTrustedOrigin, authController.logout);
 
 authRouter.get('/me', authenticate, authController.me);
 

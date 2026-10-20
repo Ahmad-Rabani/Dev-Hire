@@ -9,7 +9,7 @@ import {
   maxBytesForPurpose,
   visibilityForPurpose,
 } from './file-signatures';
-import { localStorage } from './storage/local.storage';
+import { getStorageProvider } from './storage';
 import { Upload, type IUploadDocument } from './upload.model';
 import type { PublicUpload, UploadPurpose } from './upload.types';
 
@@ -61,7 +61,8 @@ export async function createUpload(input: {
     await assertCanAttach(input.ownerId, input.purpose, input.resourceType, input.resourceId);
   }
 
-  const stored = await localStorage.save({
+  const storage = getStorageProvider();
+  const stored = await storage.save({
     buffer: input.buffer,
     purpose: input.purpose,
     extension: detected.extension,
@@ -90,7 +91,7 @@ export async function createUpload(input: {
 
     return toPublicUpload(doc);
   } catch (error) {
-    await localStorage.delete(stored.storageKey);
+    await storage.delete(stored.storageKey);
     throw error;
   }
 }
@@ -129,9 +130,53 @@ async function assertCanAttach(
   throw badRequest('Invalid resource association for this upload purpose');
 }
 
-export async function getUploadMeta(uploadId: string): Promise<PublicUpload> {
+async function assertCanAccessUpload(
+  doc: IUploadDocument,
+  viewer?: { id: string; role: string },
+): Promise<void> {
+  if (doc.visibility === 'public') return;
+
+  if (!viewer) {
+    throw forbidden('Authentication required to access this file');
+  }
+
+  if (viewer.role === 'admin' || viewer.id === doc.owner.toString()) {
+    return;
+  }
+
+  if (doc.purpose === 'milestone_deliverable' && doc.resourceId) {
+    const contract = await Contract.findById(doc.resourceId);
+    if (
+      contract &&
+      (contract.client.toString() === viewer.id || contract.freelancer.toString() === viewer.id)
+    ) {
+      return;
+    }
+  }
+
+  if (doc.purpose === 'job_attachment' && doc.resourceId) {
+    const job = await Job.findById(doc.resourceId);
+    if (job && job.client.toString() === viewer.id) {
+      return;
+    }
+    const contract = await Contract.findOne({
+      job: doc.resourceId,
+      freelancer: viewer.id,
+      status: { $in: ['active', 'completed'] },
+    }).select('_id');
+    if (contract) return;
+  }
+
+  throw forbidden('You do not have access to this file');
+}
+
+export async function getUploadMeta(
+  uploadId: string,
+  viewer?: { id: string; role: string },
+): Promise<PublicUpload> {
   const doc = await Upload.findById(uploadId);
   if (!doc) throw notFound('Upload not found');
+  await assertCanAccessUpload(doc, viewer);
   return toPublicUpload(doc);
 }
 
@@ -141,75 +186,13 @@ export async function authorizeAndReadUpload(
 ): Promise<{ buffer: Buffer; mimeType: string; originalName: string; visibility: string }> {
   const doc = await Upload.findById(uploadId);
   if (!doc) throw notFound('Upload not found');
+  await assertCanAccessUpload(doc, viewer);
 
-  if (doc.visibility === 'public') {
-    const buffer = await localStorage.read(doc.storageKey);
-    return {
-      buffer,
-      mimeType: doc.mimeType,
-      originalName: doc.originalName,
-      visibility: doc.visibility,
-    };
-  }
-
-  if (!viewer) {
-    throw forbidden('Authentication required to access this file');
-  }
-
-  if (viewer.role === 'admin' || viewer.id === doc.owner.toString()) {
-    const buffer = await localStorage.read(doc.storageKey);
-    return {
-      buffer,
-      mimeType: doc.mimeType,
-      originalName: doc.originalName,
-      visibility: doc.visibility,
-    };
-  }
-
-  // Contract participants may access milestone deliverables on their contract.
-  if (doc.purpose === 'milestone_deliverable' && doc.resourceId) {
-    const contract = await Contract.findById(doc.resourceId);
-    if (
-      contract &&
-      (contract.client.toString() === viewer.id || contract.freelancer.toString() === viewer.id)
-    ) {
-      const buffer = await localStorage.read(doc.storageKey);
-      return {
-        buffer,
-        mimeType: doc.mimeType,
-        originalName: doc.originalName,
-        visibility: doc.visibility,
-      };
-    }
-  }
-
-  // Job attachments: owner, or freelancer on a contract for that job.
-  if (doc.purpose === 'job_attachment' && doc.resourceId) {
-    const job = await Job.findById(doc.resourceId);
-    if (job && job.client.toString() === viewer.id) {
-      const buffer = await localStorage.read(doc.storageKey);
-      return {
-        buffer,
-        mimeType: doc.mimeType,
-        originalName: doc.originalName,
-        visibility: doc.visibility,
-      };
-    }
-    const contract = await Contract.findOne({
-      job: doc.resourceId,
-      freelancer: viewer.id,
-      status: { $in: ['active', 'completed'] },
-    }).select('_id');
-    if (contract) {
-      const buffer = await localStorage.read(doc.storageKey);
-      return {
-        buffer,
-        mimeType: doc.mimeType,
-        originalName: doc.originalName,
-        visibility: doc.visibility,
-      };
-    }
-  }
-
-  throw forbidden('You do not have access to this file');
+  const buffer = await getStorageProvider().read(doc.storageKey);
+  return {
+    buffer,
+    mimeType: doc.mimeType,
+    originalName: doc.originalName,
+    visibility: doc.visibility,
+  };
 }

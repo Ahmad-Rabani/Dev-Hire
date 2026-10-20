@@ -137,17 +137,31 @@ Build DevHire phase by phase. Do not mark a phase complete until the feature wor
 4. **Outbox pattern** — queue emails after the business write succeeds; a worker retries SMTP without blocking the API.
 5. **Upload ACL** — store metadata + opaque storage keys; authorize every private download from ownership/contract participation.
 
-## Phase 8 — Testing, security, polish
+## Phase 8 — Production hardening *(complete)*
 
-- Critical Vitest/Supertest (and frontend) tests
-- Security and responsive review
-- Fix build/lint/type errors
+- [x] Security audit (JWT prod secrets, CSRF origin checks, upload meta ACL, outbox leases)
+- [x] Backend ESLint flat config + frontend lint fixes
+- [x] Email worker mode (`inline` | `external` | `off`) + stale lease reclaim
+- [x] S3-compatible storage adapter (`STORAGE_DRIVER=local|s3`)
+- [x] CI workflow (lint, typecheck, test, build — no auto-deploy)
+- [x] Deployment guide (`docs/deployment.md`)
+- [x] Regression checks executed and reported
 
-## Phase 9 — Deployment preparation
+**Learning focus:** production secrets, CSRF with cookie auth, and honest deployment limits.
 
-- Atlas, CORS, cookies, env checklists
-- Frontend (Vercel) + backend host docs
-- Production readiness checklist
+### Phase 8 learning notes
+
+1. **Fail closed on secrets** — production must refuse known default JWT secrets at startup.
+2. **HttpOnly ≠ CSRF-proof** when `SameSite=None` — validate `Origin`/`Referer` on cookie POSTs.
+3. **Lease the outbox** — a crash mid-send must not leave jobs stuck in `processing` forever.
+4. **Ephemeral disks lose uploads** — local storage is for development; production needs object storage.
+5. **CI validates; humans deploy** — automated checks should not push to production by default.
+
+## Phase 9 — Portfolio polish & launch
+
+- Final accessibility / responsive pass on real devices
+- Optional monitoring (uptime, error reporting)
+- Public demo environment with seed data (no real user PII)
 
 ---
 

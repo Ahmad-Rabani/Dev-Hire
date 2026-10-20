@@ -14,6 +14,8 @@ export interface IEmailOutbox {
   lastError?: string;
   dedupeKey?: string | null;
   scheduledAt: Date;
+  /** When the current processing lease expires; stale leases can be reclaimed. */
+  leaseExpiresAt?: Date | null;
   sentAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -35,6 +37,7 @@ const emailOutboxSchema = new Schema<IEmailOutboxDocument>(
     lastError: { type: String, maxlength: 1000 },
     dedupeKey: { type: String, default: null },
     scheduledAt: { type: Date, default: () => new Date(), index: true },
+    leaseExpiresAt: { type: Date, default: null },
     sentAt: { type: Date, default: null },
   },
   { timestamps: true },

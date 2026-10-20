@@ -27,7 +27,7 @@ export const createUpload = asyncHandler(async (req, res) => {
 
 export const getUpload = asyncHandler(async (req, res) => {
   const { id } = getValidatedParams<{ id: string }>(req);
-  const upload = await uploadService.getUploadMeta(id);
+  const upload = await uploadService.getUploadMeta(id, req.user);
   sendSuccess(res, { upload });
 });
 

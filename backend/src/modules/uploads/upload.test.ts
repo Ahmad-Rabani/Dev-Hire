@@ -86,9 +86,19 @@ describe('Uploads API', () => {
       .set('Authorization', `Bearer ${stranger.token}`);
     expect(denied.status).toBe(403);
 
+    const metaDenied = await request(app)
+      .get(`/api/v1/uploads/${uploaded.body.data.upload.id}`)
+      .set('Authorization', `Bearer ${stranger.token}`);
+    expect(metaDenied.status).toBe(403);
+
     const allowed = await request(app)
       .get(`/api/v1/uploads/${uploaded.body.data.upload.id}/content`)
       .set('Authorization', `Bearer ${owner.token}`);
     expect(allowed.status).toBe(200);
+
+    const metaAllowed = await request(app)
+      .get(`/api/v1/uploads/${uploaded.body.data.upload.id}`)
+      .set('Authorization', `Bearer ${owner.token}`);
+    expect(metaAllowed.status).toBe(200);
   });
 });

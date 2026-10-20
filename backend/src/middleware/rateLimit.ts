@@ -35,3 +35,8 @@ export const passwordResetRateLimiter = createAuthRateLimiter({
   max: 10,
   message: 'Too many password reset attempts. Please try again later.',
 });
+
+export const refreshRateLimiter = createAuthRateLimiter({
+  max: 60,
+  message: 'Too many session refresh attempts. Please try again later.',
+});

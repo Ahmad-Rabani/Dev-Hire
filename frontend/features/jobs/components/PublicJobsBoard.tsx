@@ -23,32 +23,120 @@ function readParams(searchParams: URLSearchParams): JobListParams {
   };
 }
 
-export function PublicJobsBoard() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const params = useMemo(() => readParams(searchParams), [searchParams]);
+type FilterDraftProps = {
+  params: JobListParams;
+  onPush: (next: JobListParams) => void;
+  onReset: () => void;
+};
 
+/**
+ * Remounted when the URL query string changes (browser back/forward)
+ * so draft inputs stay in sync without an effect that calls setState.
+ */
+function JobFilterDraft({ params, onPush, onReset }: FilterDraftProps) {
   const [searchInput, setSearchInput] = useState(params.search ?? '');
   const [skillsInput, setSkillsInput] = useState(params.skills ?? '');
   const [minBudget, setMinBudget] = useState(params.minBudget?.toString() ?? '');
   const [maxBudget, setMaxBudget] = useState(params.maxBudget?.toString() ?? '');
 
   useEffect(() => {
-    setSearchInput(params.search ?? '');
-    setSkillsInput(params.skills ?? '');
-    setMinBudget(params.minBudget?.toString() ?? '');
-    setMaxBudget(params.maxBudget?.toString() ?? '');
-  }, [params]);
-
-  useEffect(() => {
     const handle = window.setTimeout(() => {
       if ((params.search ?? '') === searchInput.trim()) return;
-      pushParams({ ...params, search: searchInput.trim() || undefined, page: 1 });
+      onPush({ ...params, search: searchInput.trim() || undefined, page: 1 });
     }, 400);
     return () => window.clearTimeout(handle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInput]);
+  }, [searchInput, params, onPush]);
+
+  return (
+    <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Input.Search
+        size="large"
+        placeholder="Search title, description, skills"
+        value={searchInput}
+        onChange={(e) => setSearchInput(e.target.value)}
+        onSearch={(value) =>
+          onPush({ ...params, search: value.trim() || undefined, page: 1 })
+        }
+        allowClear
+        className="sm:col-span-2"
+      />
+      <Select
+        size="large"
+        allowClear
+        placeholder="Budget type"
+        value={params.budgetType}
+        options={[
+          { value: 'fixed', label: 'Fixed' },
+          { value: 'hourly', label: 'Hourly' },
+        ]}
+        onChange={(value) => onPush({ ...params, budgetType: value, page: 1 })}
+      />
+      <Select
+        size="large"
+        value={`${params.sortBy}:${params.sortOrder}`}
+        options={[
+          { value: 'createdAt:desc', label: 'Newest' },
+          { value: 'createdAt:asc', label: 'Oldest' },
+          { value: 'budgetMin:asc', label: 'Budget ↑' },
+          { value: 'budgetMin:desc', label: 'Budget ↓' },
+          { value: 'deadline:asc', label: 'Deadline soonest' },
+          { value: 'title:asc', label: 'Title A–Z' },
+        ]}
+        onChange={(value) => {
+          const [sortBy, sortOrder] = value.split(':') as [JobSortField, 'asc' | 'desc'];
+          onPush({ ...params, sortBy, sortOrder, page: 1 });
+        }}
+      />
+      <Input
+        size="large"
+        placeholder="Skills (comma-separated)"
+        value={skillsInput}
+        onChange={(e) => setSkillsInput(e.target.value)}
+      />
+      <Input
+        size="large"
+        type="number"
+        placeholder="Min budget"
+        value={minBudget}
+        onChange={(e) => setMinBudget(e.target.value)}
+      />
+      <Input
+        size="large"
+        type="number"
+        placeholder="Max budget"
+        value={maxBudget}
+        onChange={(e) => setMaxBudget(e.target.value)}
+      />
+      <div className="flex gap-2">
+        <Button
+          type="primary"
+          size="large"
+          onClick={() =>
+            onPush({
+              ...params,
+              skills: skillsInput.trim() || undefined,
+              minBudget: minBudget ? Number(minBudget) : undefined,
+              maxBudget: maxBudget ? Number(maxBudget) : undefined,
+              page: 1,
+            })
+          }
+        >
+          Apply
+        </Button>
+        <Button size="large" onClick={onReset}>
+          Reset
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function PublicJobsBoard() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const params = useMemo(() => readParams(searchParams), [searchParams]);
+  const queryKey = searchParams.toString();
 
   const query = useQuery({
     queryKey: ['jobs', 'public', params],
@@ -65,94 +153,14 @@ export function PublicJobsBoard() {
     router.replace(`${pathname}?${sp.toString()}`);
   }
 
-  function applyFilters() {
-    pushParams({
-      ...params,
-      skills: skillsInput.trim() || undefined,
-      minBudget: minBudget ? Number(minBudget) : undefined,
-      maxBudget: maxBudget ? Number(maxBudget) : undefined,
-      page: 1,
-    });
-  }
-
-  function resetFilters() {
-    setSearchInput('');
-    setSkillsInput('');
-    setMinBudget('');
-    setMaxBudget('');
-    router.replace(pathname);
-  }
-
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Input.Search
-          size="large"
-          placeholder="Search title, description, skills"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          onSearch={(value) =>
-            pushParams({ ...params, search: value.trim() || undefined, page: 1 })
-          }
-          allowClear
-          className="sm:col-span-2"
-        />
-        <Select
-          size="large"
-          allowClear
-          placeholder="Budget type"
-          value={params.budgetType}
-          options={[
-            { value: 'fixed', label: 'Fixed' },
-            { value: 'hourly', label: 'Hourly' },
-          ]}
-          onChange={(value) => pushParams({ ...params, budgetType: value, page: 1 })}
-        />
-        <Select
-          size="large"
-          value={`${params.sortBy}:${params.sortOrder}`}
-          options={[
-            { value: 'createdAt:desc', label: 'Newest' },
-            { value: 'createdAt:asc', label: 'Oldest' },
-            { value: 'budgetMin:asc', label: 'Budget ↑' },
-            { value: 'budgetMin:desc', label: 'Budget ↓' },
-            { value: 'deadline:asc', label: 'Deadline soonest' },
-            { value: 'title:asc', label: 'Title A–Z' },
-          ]}
-          onChange={(value) => {
-            const [sortBy, sortOrder] = value.split(':') as [JobSortField, 'asc' | 'desc'];
-            pushParams({ ...params, sortBy, sortOrder, page: 1 });
-          }}
-        />
-        <Input
-          size="large"
-          placeholder="Skills (comma-separated)"
-          value={skillsInput}
-          onChange={(e) => setSkillsInput(e.target.value)}
-        />
-        <Input
-          size="large"
-          type="number"
-          placeholder="Min budget"
-          value={minBudget}
-          onChange={(e) => setMinBudget(e.target.value)}
-        />
-        <Input
-          size="large"
-          type="number"
-          placeholder="Max budget"
-          value={maxBudget}
-          onChange={(e) => setMaxBudget(e.target.value)}
-        />
-        <div className="flex gap-2">
-          <Button type="primary" size="large" onClick={applyFilters}>
-            Apply
-          </Button>
-          <Button size="large" onClick={resetFilters}>
-            Reset
-          </Button>
-        </div>
-      </div>
+      <JobFilterDraft
+        key={queryKey}
+        params={params}
+        onPush={pushParams}
+        onReset={() => router.replace(pathname)}
+      />
 
       {query.isLoading ? (
         <div className="flex justify-center py-16">

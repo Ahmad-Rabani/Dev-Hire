@@ -298,7 +298,7 @@ describe('Contracts, milestones & reviews API', () => {
   });
 
   it('allows cancellation only before advanced milestone work', async () => {
-    const { client, freelancer, contractId } = await hireFlow();
+    const { client, contractId } = await hireFlow();
 
     const cancel = await request(app)
       .post(`/api/v1/contracts/${contractId}/cancel`)

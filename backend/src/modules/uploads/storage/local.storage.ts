@@ -29,9 +29,13 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   private absolutePath(storageKey: string): string {
-    const normalized = path.normalize(storageKey).replace(/^(\.\.(\/|\\|$))+/, '');
+    if (!storageKey || storageKey.includes('\0') || /(?:^|[\\/])\.\.(?:[\\/]|$)/.test(storageKey)) {
+      throw new Error('Invalid storage key');
+    }
+    const normalized = path.normalize(storageKey);
     const full = path.resolve(this.root, normalized);
-    if (!full.startsWith(this.root)) {
+    const relative = path.relative(this.root, full);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
       throw new Error('Invalid storage key');
     }
     return full;

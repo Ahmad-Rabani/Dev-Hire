@@ -4,7 +4,7 @@ import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { App as AntApp, ConfigProvider } from 'antd';
 import dynamic from 'next/dynamic';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { SocketNotificationProvider } from '@/features/notifications/SocketNotificationProvider';
 import { makeQueryClient } from '@/lib/query-client';
@@ -25,11 +25,7 @@ type AppProvidersProps = {
  */
 export function AppProviders({ children }: AppProvidersProps) {
   const [queryClient] = useState(() => makeQueryClient());
-  const [showDevtools, setShowDevtools] = useState(false);
-
-  useEffect(() => {
-    setShowDevtools(process.env.NODE_ENV === 'development');
-  }, []);
+  const showDevtools = process.env.NODE_ENV === 'development';
 
   return (
     <AntdRegistry>

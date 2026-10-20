@@ -71,11 +71,11 @@ App: [http://localhost:3001](http://localhost:3001)
 4. Proposals
 5. Contracts, milestones, and reviews
 6. Dashboards and administration
-7. **Notifications, email, and uploads** *(current)*
-8. Testing, security, and polish
-9. Deployment preparation
+7. Notifications, email, and uploads
+8. **Production hardening, CI, and deployment readiness** *(current)*
+9. Portfolio polish and launch
 
-See [docs/development-roadmap.md](docs/development-roadmap.md) for details.
+See [docs/development-roadmap.md](docs/development-roadmap.md) and [docs/deployment.md](docs/deployment.md).
 
 ## Scripts overview
 
@@ -83,19 +83,22 @@ See [docs/development-roadmap.md](docs/development-roadmap.md) for details.
 |----------|---------|--------------|
 | `backend` | `npm run dev` | Start API + Socket.IO + in-process email worker |
 | `backend` | `npm run worker:email` | Dedicated email outbox worker (optional) |
+| `backend` | `npm run lint` | ESLint flat config |
 | `backend` | `npm run build` | Compile TypeScript to `dist/` |
 | `backend` | `npm start` | Run compiled server |
 | `backend` | `npm test` | Vitest API tests |
-| `frontend` | `npm run dev` | Start Next.js on port 3001 |
+| `frontend` | `npm run lint` | Next.js ESLint |
+| `frontend` | `npm run typecheck` | TypeScript check |
 | `frontend` | `npm run build` | Production build |
 | `frontend` | `npm run start` | Serve production build |
 | `frontend` | `npm test` | Vitest UI tests |
 
-### Phase 7 local notes
+### Local notes (Phases 7–8)
 
-- Copy `backend/.env.example` → `.env`. Leave SMTP blank for local work without mail; the API still succeeds and queues/logs safely.
-- Uploaded files land in `backend/uploads/` (gitignored). This local adapter is for development — production needs durable object storage before multi-instance deploy.
+- Copy `backend/.env.example` → `.env`. Leave SMTP blank for local work without mail.
+- Uploads: `STORAGE_DRIVER=local` → `backend/uploads/` (gitignored). Production: `s3`.
 - Socket URL: `NEXT_PUBLIC_SOCKET_URL=http://localhost:5000` in `frontend/.env.local`.
+- CI: `.github/workflows/ci.yml` runs lint/typecheck/test/build (no deploy).
 
 ## Security notes
 
@@ -103,3 +106,4 @@ See [docs/development-roadmap.md](docs/development-roadmap.md) for details.
 - Admin accounts are **not** creatable via public registration (Phase 2+).
 - All protected operations are enforced on the backend, not only in the UI.
 - Upload validation checks extensions + magic bytes; it is **not** malware scanning.
+- Production JWT secrets must not use development defaults (enforced at startup).
