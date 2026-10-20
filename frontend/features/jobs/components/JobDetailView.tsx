@@ -7,6 +7,7 @@ import { getApiErrorMessage } from '@/lib/api-client';
 import { getJob } from '@/services/jobs.service';
 import { useAuthStore } from '@/stores/auth-store';
 import { JobProposalPanel } from '@/features/proposals/components/JobProposalPanel';
+import { ReportButton } from '@/features/reports/components/ReportButton';
 import { formatBudget, formatDate, JOB_STATUS_COLORS } from '../lib/format';
 
 type JobDetailViewProps = {
@@ -57,10 +58,11 @@ export function JobDetailView({ id }: JobDetailViewProps) {
             Posted by {job.client.name} · {formatDate(job.createdAt)}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link href="/jobs">
             <Button>All jobs</Button>
           </Link>
+          {!isOwner ? <ReportButton targetType="job" targetId={job.id} /> : null}
           {isOwner ? (
             <>
               <Link href="/client/jobs">

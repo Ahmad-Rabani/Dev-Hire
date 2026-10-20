@@ -37,6 +37,7 @@ export function toPublicJob(job: IJobDocument): PublicJob {
     currency: job.currency,
     deadline: job.deadline.toISOString(),
     status: job.status,
+    moderationStatus: job.moderationStatus ?? 'visible',
     client,
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),

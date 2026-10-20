@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Rate, Spin, Tag } from 'antd';
 import { getApiErrorMessage } from '@/lib/api-client';
+import { ReportButton } from '@/features/reports/components/ReportButton';
 import { listFreelancerReviews } from '@/services/contracts.service';
 import { getFreelancer } from '@/services/users.service';
 
@@ -39,14 +40,19 @@ export function FreelancerPublicProfile({ id }: Props) {
   return (
     <article className="space-y-6">
       <header>
-        <h1 className="text-3xl font-semibold text-slate-900">{f.name}</h1>
-        <p className="mt-1 text-lg text-teal-800">{f.professionalTitle || 'Freelancer'}</p>
-        <p className="mt-2 text-sm text-slate-500">
-          ★ {f.averageRating.toFixed(1)}
-          {reviewSummary ? ` (${reviewSummary.reviewCount} reviews)` : ''} ·{' '}
-          {f.completedContracts} completed contracts · {f.availability ?? 'available'}
-          {f.hourlyRate != null ? ` · $${f.hourlyRate}/hr` : ''}
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-semibold text-slate-900">{f.name}</h1>
+            <p className="mt-1 text-lg text-teal-800">{f.professionalTitle || 'Freelancer'}</p>
+            <p className="mt-2 text-sm text-slate-500">
+              ★ {f.averageRating.toFixed(1)}
+              {reviewSummary ? ` (${reviewSummary.reviewCount} reviews)` : ''} ·{' '}
+              {f.completedContracts} completed contracts · {f.availability ?? 'available'}
+              {f.hourlyRate != null ? ` · $${f.hourlyRate}/hr` : ''}
+            </p>
+          </div>
+          <ReportButton targetType="user" targetId={id} />
+        </div>
       </header>
 
       <section>

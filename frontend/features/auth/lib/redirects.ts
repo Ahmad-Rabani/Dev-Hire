@@ -13,9 +13,9 @@ export function sanitizeReturnTo(value: string | null | undefined, fallback: str
 export function dashboardPathForRole(role: UserRole): string {
   switch (role) {
     case 'client':
-      return '/client/profile';
+      return '/client/dashboard';
     case 'freelancer':
-      return '/freelancer/profile';
+      return '/freelancer/dashboard';
     case 'admin':
       return '/admin';
     default:

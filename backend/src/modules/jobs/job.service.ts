@@ -5,6 +5,7 @@ import {
   DELETABLE_JOB_STATUSES,
   EDITABLE_JOB_STATUSES,
   JOB_STATUS_TRANSITIONS,
+  PUBLIC_JOB_MODERATION,
   PUBLIC_JOB_STATUSES,
   type JobSortField,
   type PaginationMeta,
@@ -55,6 +56,7 @@ function buildListFilter(
 
   if (options.publicOnly) {
     filter.status = { $in: PUBLIC_JOB_STATUSES };
+    filter.moderationStatus = { $in: PUBLIC_JOB_MODERATION };
   } else if (query.status) {
     filter.status = query.status;
   }
@@ -150,9 +152,12 @@ export async function getJobById(
       ? (job.client as { _id: { toString(): string } })._id.toString()
       : String(job.client);
   const isOwner = Boolean(viewer?.id && viewer.id === ownerId);
-  const isPublic = PUBLIC_JOB_STATUSES.includes(job.status);
+  const isAdmin = viewer?.role === 'admin';
+  const isPublicLifecycle = PUBLIC_JOB_STATUSES.includes(job.status);
+  const isPubliclyVisible =
+    isPublicLifecycle && PUBLIC_JOB_MODERATION.includes(job.moderationStatus ?? 'visible');
 
-  if (!isPublic && !isOwner) {
+  if (!isPubliclyVisible && !isOwner && !isAdmin) {
     throw notFound('Job not found');
   }
 

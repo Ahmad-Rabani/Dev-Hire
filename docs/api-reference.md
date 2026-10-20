@@ -229,6 +229,50 @@ Either participant may cancel an `active` contract with `{ "reason" }` only if e
 `pending` → `submitted` → `approved`  
 `submitted` → `revision_requested` → `submitted` → …
 
+## Dashboards & admin (Phase 6)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `GET` | `/client/dashboard` | Client | Own job/proposal/contract stats + recent items |
+| `GET` | `/freelancer/dashboard` | Freelancer | Own proposal/contract/rating stats + recent items |
+| `GET` | `/admin/dashboard` | Admin | Platform-wide aggregations + recent activity |
+| `GET` | `/admin/users` | Admin | Search/filter/sort/paginate users |
+| `GET` | `/admin/users/:id` | Admin | User detail + related counts |
+| `PATCH` | `/admin/users/:id/status` | Admin | `{ status: active\|suspended, reason? }` |
+| `GET` | `/admin/jobs` | Admin | Jobs with lifecycle + moderation filters |
+| `GET` | `/admin/jobs/:id` | Admin | Job detail for moderation |
+| `PATCH` | `/admin/jobs/:id/moderation` | Admin | `{ moderationStatus, reason }` |
+| `POST` | `/reports` | Any auth user | Submit report on job/user/review |
+| `GET` | `/admin/reports` | Admin | Report queue |
+| `GET` | `/admin/reports/:id` | Admin | Report detail |
+| `PATCH` | `/admin/reports/:id/status` | Admin | `{ status, resolutionNote }` |
+| `GET` | `/admin/audit-logs` | Admin | Paginated audit trail |
+
+### Statistic definitions (high level)
+
+- **Client proposals:** only proposals on jobs owned by that client; `proposalsPending` = status `pending`.
+- **Freelancer ratings:** `averageRating` from User (kept in sync with Review `$avg`); `reviewCount` = `Review` count for reviewee.
+- **Admin job lifecycle vs moderation:** counted separately — an `open` + `hidden` job increments both `jobsOpen` and `jobsHidden`.
+- **Suspension:** blocked on every `authenticate` call; refresh sessions revoked on suspend. Public GET jobs still readable.
+
+### Admin provisioning
+
+```bash
+cd backend
+npm run create-admin -- --email admin@example.com --password 'AdminPass1' --name 'Platform Admin'
+```
+
+Never commit real credentials.
+
+### Postman / manual (Phase 6)
+
+1. Create admin via script; login; `GET /admin/dashboard`.
+2. Client: `GET /client/dashboard` after posting a job.
+3. Suspend a client → their Bearer token gets **403** on `/client/dashboard`.
+4. Hide a job → disappears from `GET /jobs`; owner still sees `GET /jobs/:id`.
+5. `POST /reports` as authenticated user; resolve via `PATCH /admin/reports/:id/status`.
+6. Confirm `GET /admin/audit-logs` contains the actions.
+
 ### Postman / manual (Phase 5)
 
 1. Hire via Phase 4 accept → note `contract.id`.

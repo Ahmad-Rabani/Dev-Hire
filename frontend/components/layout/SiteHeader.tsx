@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { logout } from '@/services/auth.service';
 import { useAuthStore } from '@/stores/auth-store';
-import { dashboardPathForRole } from '@/features/auth/lib/redirects';
 import { getApiErrorMessage } from '@/lib/api-client';
 
 export function SiteHeader() {
@@ -44,27 +43,41 @@ export function SiteHeader() {
             <>
               {user.role === 'client' ? (
                 <>
+                  <Link href="/client/dashboard">
+                    <Button type="text">Dashboard</Button>
+                  </Link>
                   <Link href="/client/jobs">
                     <Button type="text">My jobs</Button>
                   </Link>
                   <Link href="/client/contracts">
                     <Button type="text">Contracts</Button>
                   </Link>
+                  <Link href="/client/profile">
+                    <Button type="text">Profile</Button>
+                  </Link>
                 </>
               ) : null}
               {user.role === 'freelancer' ? (
                 <>
+                  <Link href="/freelancer/dashboard">
+                    <Button type="text">Dashboard</Button>
+                  </Link>
                   <Link href="/freelancer/proposals">
                     <Button type="text">My proposals</Button>
                   </Link>
                   <Link href="/freelancer/contracts">
                     <Button type="text">Contracts</Button>
                   </Link>
+                  <Link href="/freelancer/profile">
+                    <Button type="text">Profile</Button>
+                  </Link>
                 </>
               ) : null}
-              <Link href={dashboardPathForRole(user.role)}>
-                <Button type="text">My profile</Button>
-              </Link>
+              {user.role === 'admin' ? (
+                <Link href="/admin">
+                  <Button type="text">Admin</Button>
+                </Link>
+              ) : null}
               <Dropdown
                 menu={{
                   items: [

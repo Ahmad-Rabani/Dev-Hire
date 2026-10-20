@@ -1,5 +1,6 @@
 export type BudgetType = 'fixed' | 'hourly';
 export type JobStatus = 'draft' | 'open' | 'paused' | 'in_progress' | 'closed' | 'cancelled';
+export type JobModerationStatus = 'visible' | 'hidden' | 'removed';
 export type JobSortField = 'createdAt' | 'deadline' | 'budgetMin' | 'title';
 
 export type JobClientSummary = {
@@ -19,6 +20,7 @@ export type Job = {
   currency: string;
   deadline: string;
   status: JobStatus;
+  moderationStatus?: JobModerationStatus;
   client: JobClientSummary;
   createdAt: string;
   updatedAt: string;

@@ -98,12 +98,24 @@ Build DevHire phase by phase. Do not mark a phase complete until the feature wor
 3. **Compound unique reviews** — `{ contract, reviewer }` lets both parties review once; uniqueness on `contract` alone would block the reciprocal review.
 4. **Transactions** — completion updates contract + job + user counters; falls back to conditional updates on standalone MongoDB (no replica set).
 
-## Phase 6 — Dashboards and admin
+## Phase 6 — Dashboards and admin *(complete)*
 
-- Role dashboards via aggregations
-- User suspend/reactivate, job moderation
+- [x] Client / freelancer / admin dashboards (real aggregations)
+- [x] Admin user search, suspend / reactivate + last-admin guard
+- [x] Job moderation (`visible` | `hidden` | `removed`) separate from lifecycle
+- [x] User reports + admin report queue
+- [x] Persistent audit logs for admin actions
+- [x] Suspension enforced on every authenticated request (Phase 2 middleware)
+- [x] Backend + frontend tests / docs
 
 **Learning focus:** aggregation pipelines and admin authorization.
+
+### Phase 6 learning notes
+
+1. **Aggregation** — `$match` early, then `$group` by status/role; count in MongoDB instead of loading every document into Node.
+2. **Lifecycle ≠ moderation** — a job can stay `open` while `hidden` from public discovery.
+3. **Audit from Phase 6 onward** — older events are not backfilled; admin dashboards mix live entity timestamps with new audit rows.
+4. **Suspension** — `authenticate` re-reads `User.status` on each request; refresh sessions are revoked on suspend.
 
 ## Phase 7 — Notifications and uploads
 

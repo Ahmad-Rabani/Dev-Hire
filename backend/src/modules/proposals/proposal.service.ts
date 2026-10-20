@@ -75,6 +75,9 @@ export async function submitProposal(
   if (!JOB_ACCEPTING_PROPOSALS.includes(job.status)) {
     throw badRequest('This job is not accepting proposals');
   }
+  if ((job.moderationStatus ?? 'visible') !== 'visible') {
+    throw badRequest('This job is not accepting proposals');
+  }
   if (job.client.toString() === freelancerId) {
     throw forbidden('You cannot apply to your own job');
   }

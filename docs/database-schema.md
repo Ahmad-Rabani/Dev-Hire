@@ -41,7 +41,9 @@
 | budgetMin, budgetMax | Numbers; min ≤ max |
 | currency | Default `USD` |
 | deadline | Future date on create/update |
-| status | `draft` \| `open` \| `paused` \| `closed` \| `cancelled` |
+| status | Lifecycle: `draft` \| `open` \| `paused` \| `in_progress` \| `closed` \| `cancelled` |
+| moderationStatus | `visible` (default) \| `hidden` \| `removed` — independent of lifecycle |
+| moderationReason / moderatedAt / moderatedBy | Set by admin moderation |
 | client | ObjectId → User (set from auth, never from body) |
 | timestamps | createdAt / updatedAt |
 
@@ -107,6 +109,32 @@
 **Indexes:** unique `{ contract, reviewer }` (one review per person per contract; both parties may review); `{ reviewee, createdAt }` for public profile lists.
 
 **Rating aggregation:** after each review create, `User.averageRating` for the reviewee is recalculated with `$avg` over Review documents (not client-writable). `completedContracts` increments on contract completion for both parties.
+
+### reports (Phase 6)
+
+| Field | Notes |
+|-------|-------|
+| reporter | Authenticated user |
+| targetType | `job` \| `user` \| `review` |
+| targetId | ObjectId of target |
+| category | `spam` \| `harassment` \| `inappropriate` \| `scam` \| `other` |
+| explanation | 10–2000 chars |
+| status | `open` \| `under_review` \| `resolved` \| `dismissed` |
+| resolutionNote / resolvedBy / resolvedAt | Admin resolution |
+
+**Indexes:** status+date; target; partial unique open/under_review per reporter+target.
+
+### auditlogs (Phase 6)
+
+| Field | Notes |
+|-------|-------|
+| actor | Admin user ObjectId |
+| action | e.g. `user.suspended`, `job.hidden`, `report.resolved` |
+| targetType / targetId | `user` \| `job` \| `report` |
+| reason / summary | Safe short text — no secrets |
+| timestamps | Server-generated |
+
+Audit logging starts when Phase 6 is deployed; historical actions before that are not reconstructed.
 
 ## Relationships
 

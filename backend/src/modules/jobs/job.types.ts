@@ -11,8 +11,16 @@ export const JOB_STATUSES = [
 ] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
 
-/** Public browsing only surfaces open jobs. */
+/**
+ * Moderation is separate from business lifecycle (`status`).
+ * An open+hidden job stays `open` for the owner but is excluded from public discovery.
+ */
+export const JOB_MODERATION_STATUSES = ['visible', 'hidden', 'removed'] as const;
+export type JobModerationStatus = (typeof JOB_MODERATION_STATUSES)[number];
+
+/** Public browsing only surfaces open + visible jobs. */
 export const PUBLIC_JOB_STATUSES: JobStatus[] = ['open'];
+export const PUBLIC_JOB_MODERATION: JobModerationStatus[] = ['visible'];
 
 /**
  * Allowed status transitions (owner-driven via PATCH status).
@@ -56,6 +64,7 @@ export type PublicJob = {
   currency: string;
   deadline: string;
   status: JobStatus;
+  moderationStatus: JobModerationStatus;
   client: JobClientSummary;
   createdAt: string;
   updatedAt: string;
