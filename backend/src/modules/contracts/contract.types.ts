@@ -20,6 +20,7 @@ export type PublicMilestone = {
   status: MilestoneStatus;
   submissionNotes?: string;
   deliverableUrl?: string;
+  deliverableUploadIds?: string[];
   submittedAt?: string;
   revisionFeedback?: string;
   revisionRequestedAt?: string;

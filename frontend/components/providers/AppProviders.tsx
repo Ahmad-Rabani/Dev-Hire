@@ -6,6 +6,7 @@ import { App as AntApp, ConfigProvider } from 'antd';
 import dynamic from 'next/dynamic';
 import { useEffect, useState, type ReactNode } from 'react';
 import { AuthProvider } from '@/features/auth/AuthProvider';
+import { SocketNotificationProvider } from '@/features/notifications/SocketNotificationProvider';
 import { makeQueryClient } from '@/lib/query-client';
 
 const ReactQueryDevtools = dynamic(
@@ -43,7 +44,9 @@ export function AppProviders({ children }: AppProvidersProps) {
           }}
         >
           <AntApp>
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider>
+              <SocketNotificationProvider>{children}</SocketNotificationProvider>
+            </AuthProvider>
           </AntApp>
         </ConfigProvider>
         {showDevtools ? <ReactQueryDevtools initialIsOpen={false} /> : null}

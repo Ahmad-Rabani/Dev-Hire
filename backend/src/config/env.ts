@@ -12,6 +12,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(5000),
   MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
   FRONTEND_ORIGIN: z.string().url().default('http://localhost:3001'),
+  /** Public origin of this API (used for absolute upload URLs in emails/avatars). */
+  PUBLIC_API_URL: z.string().url().default('http://localhost:5000'),
   JWT_ACCESS_SECRET: z.string().min(16).default('dev-access-secret-change-me'),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_SECRET: z.string().min(16).default('dev-refresh-secret-change-me'),

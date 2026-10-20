@@ -10,6 +10,7 @@ export const milestoneFormSchema = z.object({
 export const submitMilestoneSchema = z.object({
   submissionNotes: z.string().trim().min(10).max(5000),
   deliverableUrl: z.union([z.literal(''), z.string().trim().url('Must be a valid URL').max(500)]),
+  deliverableUploadIds: z.array(z.string()).max(5).optional(),
 });
 
 export const revisionSchema = z.object({

@@ -19,6 +19,7 @@ export type Milestone = {
   status: MilestoneStatus;
   submissionNotes?: string;
   deliverableUrl?: string;
+  deliverableUploadIds?: string[];
   submittedAt?: string;
   revisionFeedback?: string;
   revisionRequestedAt?: string;
@@ -80,6 +81,7 @@ export type UpdateMilestoneInput = Partial<CreateMilestoneInput>;
 export type SubmitMilestoneInput = {
   submissionNotes: string;
   deliverableUrl?: string;
+  deliverableUploadIds?: string[];
 };
 
 export type RequestRevisionInput = {

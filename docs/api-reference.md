@@ -283,6 +283,54 @@ Never commit real credentials.
 6. Both: `POST /contracts/:id/reviews` with rating 1–5 + comment; duplicate → **409**.
 7. Public: `GET /freelancers/:freelancerId/reviews`.
 
+## Notifications, email & uploads (Phase 7)
+
+### Notifications
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `GET` | `/notifications` | Auth | Paginated list (`page`, `limit`, `unreadOnly=true`) |
+| `GET` | `/notifications/unread-count` | Auth | `{ count }` for the authenticated user only |
+| `PATCH` | `/notifications/:id/read` | Auth | Sets `readAt` (idempotent) |
+| `POST` | `/notifications/read-all` | Auth | Marks all of the caller’s unread as read |
+
+Notifications are created only after successful business events (proposal submit/accept/reject, milestone submit/approve/revision, contract complete/cancel, review). Duplicate events use `dedupeKey`.
+
+### Socket.IO
+
+- URL: same host as the API (`NEXT_PUBLIC_SOCKET_URL`, default `http://localhost:5000`)
+- Auth: `io(url, { auth: { token: accessToken } })` — **never** put the token in the query string
+- Server joins the socket to `user:{verifiedUserId}`
+- Event: `notification:new` → `{ notification }` (public fields only)
+- Suspended / invalid tokens are rejected at handshake
+
+### Uploads
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/uploads` | Auth | Multipart field `file` + `purpose` (`avatar` \| `portfolio` \| `job_attachment` \| `milestone_deliverable`); optional `resourceType` + `resourceId` |
+| `GET` | `/uploads/:id` | Optional | Metadata |
+| `GET` | `/uploads/:id/content` | Public files open; private requires auth + ACL |
+
+**Limits (defaults):** avatar ≤ 2MB (JPEG/PNG/WebP); portfolio ≤ 5MB images; job/milestone ≤ `MAX_FILE_SIZE_MB` (default 5) for images + PDF. Content is inspected via magic bytes — browser MIME alone is not trusted. **No malware scanning** is performed.
+
+Private access: owner, admin, contract participants (milestone), job owner or contracted freelancer (job attachments).
+
+### Email
+
+- Auth verification / password reset: Nodemailer via `sendMail` (reports `delivered: false` if SMTP unset)
+- Transactional marketplace emails: queued in `emailoutboxes`, processed by in-process timer or `npm run worker:email`
+- Env: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`, `FRONTEND_ORIGIN`, `PUBLIC_API_URL`
+- SMTP acceptance ≠ guaranteed inbox delivery
+
+### Postman / manual (Phase 7)
+
+1. Submit a proposal → client `GET /notifications` shows `proposal.submitted`; unread count increments.
+2. Connect Socket.IO with a valid access token; accept a proposal → freelancer receives `notification:new`.
+3. Upload avatar (`purpose=avatar`) → `User.avatarUrl` points at `/api/v1/uploads/:id/content`.
+4. Upload a private milestone deliverable; unrelated user `GET .../content` → **403**.
+5. With SMTP blank, register a user — API succeeds and `emailDelivery.verificationEmailQueued` is false (or equivalent); configure SMTP to actually deliver.
+
 ## CSRF note
 
 Refresh cookies use `SameSite=Lax` in development and `SameSite=None; Secure` in production, scoped to `/api/v1/auth`. Cross-site form CSRF against cookie-authenticated refresh is mitigated by SameSite; production should still use HTTPS and a strict CORS allow-list.

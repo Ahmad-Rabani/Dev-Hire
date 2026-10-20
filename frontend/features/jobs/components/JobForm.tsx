@@ -3,7 +3,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Alert, Button, DatePicker, Input, Radio } from 'antd';
 import dayjs from 'dayjs';
+import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { FileUploadField } from '@/components/uploads/FileUploadField';
+import type { PublicUpload } from '@/services/upload.service';
 import type { Job } from '@/types/job';
 import { jobFormSchema, skillsFromText, type JobFormValues } from '../schemas';
 
@@ -22,6 +25,7 @@ type JobFormProps = {
     currency: string;
     deadline: string;
     status: 'draft' | 'open';
+    attachmentUploadIds?: string[];
   }) => Promise<void> | void;
 };
 
@@ -32,6 +36,19 @@ export function JobForm({
   errorMessage,
   onSubmit,
 }: JobFormProps) {
+  const [attachments, setAttachments] = useState<PublicUpload[]>(
+    (initial?.attachmentUploadIds ?? []).map((id, index) => ({
+      id,
+      purpose: 'job_attachment',
+      visibility: 'private',
+      originalName: `Attachment ${index + 1}`,
+      mimeType: 'application/octet-stream',
+      size: 0,
+      url: '',
+      createdAt: '',
+    })),
+  );
+
   const {
     control,
     handleSubmit,
@@ -64,6 +81,7 @@ export function JobForm({
       currency: values.currency,
       deadline: new Date(values.deadline).toISOString(),
       status: values.status,
+      attachmentUploadIds: attachments.map((f) => f.id),
     });
   });
 
@@ -195,6 +213,17 @@ export function JobForm({
           />
         </div>
       ) : null}
+
+      <FileUploadField
+        purpose="job_attachment"
+        resourceType={initial?.id ? 'job' : undefined}
+        resourceId={initial?.id}
+        label="Job attachments (private)"
+        multiple
+        maxFiles={5}
+        value={attachments}
+        onChange={setAttachments}
+      />
 
       <Button type="primary" htmlType="submit" size="large" loading={isSubmitting}>
         {submitLabel}

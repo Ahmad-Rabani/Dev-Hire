@@ -16,6 +16,7 @@ export type IMilestone = {
   status: MilestoneStatus;
   submissionNotes?: string;
   deliverableUrl?: string;
+  deliverableUploadIds?: Types.ObjectId[];
   submittedAt?: Date;
   revisionFeedback?: string;
   revisionRequestedAt?: Date;
@@ -52,6 +53,14 @@ const milestoneSchema = new Schema<IMilestone>(
     status: { type: String, enum: MILESTONE_STATUSES, default: 'pending' },
     submissionNotes: { type: String, trim: true, maxlength: 5000 },
     deliverableUrl: { type: String, trim: true, maxlength: 500 },
+    deliverableUploadIds: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'Upload' }],
+      default: [],
+      validate: {
+        validator: (ids: Types.ObjectId[]) => ids.length <= 5,
+        message: 'A maximum of 5 deliverable files is allowed',
+      },
+    },
     submittedAt: { type: Date },
     revisionFeedback: { type: String, trim: true, maxlength: 2000 },
     revisionRequestedAt: { type: Date },

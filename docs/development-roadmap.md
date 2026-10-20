@@ -117,13 +117,25 @@ Build DevHire phase by phase. Do not mark a phase complete until the feature wor
 3. **Audit from Phase 6 onward** — older events are not backfilled; admin dashboards mix live entity timestamps with new audit rows.
 4. **Suspension** — `authenticate` re-reads `User.status` on each request; refresh sessions are revoked on suspend.
 
-## Phase 7 — Notifications and uploads
+## Phase 7 — Notifications and uploads *(complete)*
 
-- Persistent notifications + Socket.IO
-- Nodemailer (graceful if SMTP missing)
-- Secure Multer uploads
+- [x] Persistent MongoDB notifications + unread count / mark-read APIs
+- [x] Business-event hooks (proposals, contracts, milestones, reviews)
+- [x] Socket.IO with JWT handshake auth + private `user:{id}` rooms
+- [x] Notification bell, list page, live toast on `notification:new`
+- [x] Nodemailer + email outbox worker (auth + transactional)
+- [x] Secure uploads (magic-byte checks, local storage, public/private ACL)
+- [x] Avatar, portfolio, job attachments, milestone deliverables
 
 **Learning focus:** real-time auth and safe file handling.
+
+### Phase 7 learning notes
+
+1. **MongoDB is the source of truth** — Socket.IO only pushes updates; offline users catch up via REST.
+2. **Handshake auth** — put the access token in `socket.handshake.auth.token`, never in the query string.
+3. **Rooms are server-assigned** — the backend joins `user:{verifiedId}`; clients cannot pick another user’s room.
+4. **Outbox pattern** — queue emails after the business write succeeds; a worker retries SMTP without blocking the API.
+5. **Upload ACL** — store metadata + opaque storage keys; authorize every private download from ownership/contract participation.
 
 ## Phase 8 — Testing, security, polish
 

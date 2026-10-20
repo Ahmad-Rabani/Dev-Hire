@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { badRequest, conflict, forbidden, notFound } from '../../utils/AppError';
 import type { AuthUser } from '../../types/express';
 import { Contract } from '../contracts/contract.model';
+import { notifyReviewReceived } from '../notifications/notification.events';
 import { User } from '../users/user.model';
 import { toPublicReview } from './review.mapper';
 import { Review } from './review.model';
@@ -75,6 +76,13 @@ export async function createReview(
 
     await refreshAverageRating(revieweeId);
     await review.populate(REVIEWER_POPULATE);
+    await notifyReviewReceived({
+      revieweeId,
+      reviewerId: user.id,
+      contractId: contract._id.toString(),
+      rating: input.rating,
+      reviewId: review._id.toString(),
+    });
     return toPublicReview(review);
   } catch (error) {
     if (isDuplicateKeyError(error)) {

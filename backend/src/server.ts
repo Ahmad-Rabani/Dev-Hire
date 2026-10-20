@@ -1,17 +1,24 @@
 import http from 'http';
 import { createApp } from './app';
 import { connectDatabase } from './config/database';
-import { env } from './config/env';
+import { env, isDevelopment } from './config/env';
+import { startEmailOutboxWorker } from './modules/email/email-outbox.service';
+import { initSocketServer } from './realtime/socket';
 import { logger } from './utils/logger';
 
 async function bootstrap(): Promise<void> {
-  // Validate env first (imported via env module), then connect DB, then listen.
   await connectDatabase();
 
   const app = createApp();
   const server = http.createServer(app);
 
-  // Socket.IO will attach to this same HTTP server in Phase 7.
+  initSocketServer(server);
+
+  // Process queued emails in-process during development/production without Redis.
+  // A dedicated CLI worker remains available: npm run worker:email
+  if (env.NODE_ENV !== 'test') {
+    startEmailOutboxWorker(isDevelopment ? 10_000 : 30_000);
+  }
 
   server.listen(env.PORT, () => {
     logger.info(`DevHire API listening on http://localhost:${env.PORT}`);

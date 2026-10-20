@@ -66,6 +66,7 @@ export type PublicJob = {
   status: JobStatus;
   moderationStatus: JobModerationStatus;
   client: JobClientSummary;
+  attachmentUploadIds: string[];
   createdAt: string;
   updatedAt: string;
 };

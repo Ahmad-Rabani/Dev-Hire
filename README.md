@@ -65,13 +65,13 @@ App: [http://localhost:3001](http://localhost:3001)
 
 ## Development phases
 
-1. **Foundation** — project setup, health API, docs *(current)*
+1. Foundation — project setup, health API, docs
 2. Authentication and profiles
 3. Jobs
 4. Proposals
 5. Contracts, milestones, and reviews
 6. Dashboards and administration
-7. Notifications and uploads
+7. **Notifications, email, and uploads** *(current)*
 8. Testing, security, and polish
 9. Deployment preparation
 
@@ -81,15 +81,25 @@ See [docs/development-roadmap.md](docs/development-roadmap.md) for details.
 
 | Location | Command | What it does |
 |----------|---------|--------------|
-| `backend` | `npm run dev` | Start API with hot reload |
+| `backend` | `npm run dev` | Start API + Socket.IO + in-process email worker |
+| `backend` | `npm run worker:email` | Dedicated email outbox worker (optional) |
 | `backend` | `npm run build` | Compile TypeScript to `dist/` |
 | `backend` | `npm start` | Run compiled server |
-| `frontend` | `npm run dev` | Start Next.js dev server |
+| `backend` | `npm test` | Vitest API tests |
+| `frontend` | `npm run dev` | Start Next.js on port 3001 |
 | `frontend` | `npm run build` | Production build |
 | `frontend` | `npm run start` | Serve production build |
+| `frontend` | `npm test` | Vitest UI tests |
+
+### Phase 7 local notes
+
+- Copy `backend/.env.example` → `.env`. Leave SMTP blank for local work without mail; the API still succeeds and queues/logs safely.
+- Uploaded files land in `backend/uploads/` (gitignored). This local adapter is for development — production needs durable object storage before multi-instance deploy.
+- Socket URL: `NEXT_PUBLIC_SOCKET_URL=http://localhost:5000` in `frontend/.env.local`.
 
 ## Security notes
 
 - Never commit `.env` files or real credentials.
 - Admin accounts are **not** creatable via public registration (Phase 2+).
 - All protected operations are enforced on the backend, not only in the UI.
+- Upload validation checks extensions + magic bytes; it is **not** malware scanning.

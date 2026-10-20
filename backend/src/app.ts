@@ -14,8 +14,10 @@ import {
 } from './modules/dashboard/dashboard.routes';
 import { healthRouter } from './modules/health/health.routes';
 import { jobsRouter } from './modules/jobs/job.routes';
+import { notificationsRouter } from './modules/notifications/notification.routes';
 import { proposalsRouter } from './modules/proposals/proposal.routes';
 import { reportsRouter } from './modules/reports/report.routes';
+import { uploadsRouter } from './modules/uploads/upload.routes';
 import { freelancersRouter, usersRouter } from './modules/users/user.routes';
 
 /**
@@ -65,6 +67,8 @@ export function createApp() {
   app.use('/api/v1/proposals', proposalsRouter);
   app.use('/api/v1/contracts', contractsRouter);
   app.use('/api/v1/reports', reportsRouter);
+  app.use('/api/v1/notifications', notificationsRouter);
+  app.use('/api/v1/uploads', uploadsRouter);
   app.use('/api/v1/client', clientDashboardRouter);
   app.use('/api/v1/freelancer', freelancerDashboardRouter);
   app.use('/api/v1/admin', adminRouter);

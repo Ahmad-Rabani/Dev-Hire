@@ -6,6 +6,11 @@ import { Contract } from '../contracts/contract.model';
 import type { PublicContract } from '../contracts/contract.types';
 import { Job } from '../jobs/job.model';
 import { JOB_ACCEPTING_PROPOSALS } from '../jobs/job.types';
+import {
+  notifyProposalAccepted,
+  notifyProposalRejected,
+  notifyProposalSubmitted,
+} from '../notifications/notification.events';
 import { toPublicProposal } from './proposal.mapper';
 import { Proposal } from './proposal.model';
 import type { PublicProposal } from './proposal.types';
@@ -92,6 +97,13 @@ export async function submitProposal(
       status: 'pending',
     });
     await proposal.populate([JOB_POPULATE, FREELANCER_POPULATE]);
+    await notifyProposalSubmitted({
+      clientId: job.client.toString(),
+      freelancerId,
+      jobId: job._id.toString(),
+      jobTitle: job.title,
+      proposalId: proposal._id.toString(),
+    });
     return toPublicProposal(proposal);
   } catch (error) {
     if (isDuplicateKeyError(error)) {
@@ -257,9 +269,16 @@ export async function rejectProposal(
     throw badRequest('Only pending proposals can be rejected');
   }
 
+  const freelancerId = proposal.freelancer.toString();
   proposal.status = 'rejected';
   await proposal.save();
   await proposal.populate([JOB_POPULATE, FREELANCER_POPULATE]);
+  await notifyProposalRejected({
+    freelancerId,
+    clientId,
+    jobTitle: job.title,
+    proposalId: proposal._id.toString(),
+  });
   return toPublicProposal(proposal);
 }
 
@@ -376,6 +395,7 @@ export async function acceptProposal(
     if (!result) {
       throw conflict('Acceptance did not complete');
     }
+    await notifyAfterAccept(result, clientId);
     return result;
   } catch (error) {
     if (isDuplicateKeyError(error)) {
@@ -392,6 +412,19 @@ export async function acceptProposal(
   } finally {
     await session.endSession();
   }
+}
+
+async function notifyAfterAccept(
+  result: { proposal: PublicProposal; contract: PublicContract },
+  clientId: string,
+): Promise<void> {
+  await notifyProposalAccepted({
+    freelancerId: result.proposal.freelancer.id,
+    clientId,
+    jobTitle: result.proposal.job.title,
+    proposalId: result.proposal.id,
+    contractId: result.contract.id,
+  });
 }
 
 function isTransactionUnsupported(error: unknown): boolean {
@@ -468,10 +501,12 @@ async function acceptProposalWithoutTransaction(
       milestones: [],
     });
     await accepted.populate([JOB_POPULATE, FREELANCER_POPULATE]);
-    return {
+    const result = {
       proposal: toPublicProposal(accepted),
       contract: toPublicContract(contract),
     };
+    await notifyAfterAccept(result, clientId);
+    return result;
   } catch (error) {
     if (isDuplicateKeyError(error)) {
       throw conflict('A contract already exists for this job');

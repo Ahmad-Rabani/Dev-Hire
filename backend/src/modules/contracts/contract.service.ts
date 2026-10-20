@@ -3,6 +3,14 @@ import { badRequest, conflict, forbidden, notFound } from '../../utils/AppError'
 import { logger } from '../../utils/logger';
 import type { AuthUser } from '../../types/express';
 import { Job } from '../jobs/job.model';
+import {
+  notifyContractCancelled,
+  notifyContractCompleted,
+  notifyMilestoneApproved,
+  notifyMilestoneRevision,
+  notifyMilestoneSubmitted,
+} from '../notifications/notification.events';
+import { Upload } from '../uploads/upload.model';
 import { User } from '../users/user.model';
 import { calculateProgress, toPublicContractDetail } from './contract.mapper';
 import { Contract, type IContractDocument } from './contract.model';
@@ -262,6 +270,22 @@ export async function submitMilestone(
     throw badRequest('Milestone cannot be submitted in its current state');
   }
 
+  if (input.deliverableUploadIds?.length) {
+    const uploads = await Upload.find({
+      _id: { $in: input.deliverableUploadIds },
+      owner: userId,
+      purpose: 'milestone_deliverable',
+    });
+    if (uploads.length !== input.deliverableUploadIds.length) {
+      throw badRequest('One or more deliverable uploads are invalid or not owned by you');
+    }
+    milestone.deliverableUploadIds = uploads.map((u) => u._id);
+    await Upload.updateMany(
+      { _id: { $in: uploads.map((u) => u._id) } },
+      { $set: { resourceType: 'contract', resourceId: contract._id } },
+    );
+  }
+
   milestone.status = 'submitted';
   milestone.submissionNotes = input.submissionNotes;
   milestone.deliverableUrl = input.deliverableUrl || undefined;
@@ -269,6 +293,14 @@ export async function submitMilestone(
   // Keep prior revisionFeedback visible until next approval for history context.
 
   await contract.save();
+  await notifyMilestoneSubmitted({
+    clientId: contract.client.toString(),
+    freelancerId: userId,
+    contractId: contract._id.toString(),
+    milestoneId: milestone._id.toString(),
+    milestoneTitle: milestone.title,
+    submittedAt: milestone.submittedAt,
+  });
   return reloadDetail(contractId);
 }
 
@@ -292,6 +324,13 @@ export async function approveMilestone(
   milestone.status = 'approved';
   milestone.approvedAt = new Date();
   await contract.save();
+  await notifyMilestoneApproved({
+    freelancerId: contract.freelancer.toString(),
+    clientId: userId,
+    contractId: contract._id.toString(),
+    milestoneId: milestone._id.toString(),
+    milestoneTitle: milestone.title,
+  });
   return reloadDetail(contractId);
 }
 
@@ -317,6 +356,14 @@ export async function requestMilestoneRevision(
   milestone.revisionFeedback = input.feedback;
   milestone.revisionRequestedAt = new Date();
   await contract.save();
+  await notifyMilestoneRevision({
+    freelancerId: contract.freelancer.toString(),
+    clientId: userId,
+    contractId: contract._id.toString(),
+    milestoneId: milestone._id.toString(),
+    milestoneTitle: milestone.title,
+    revisionRequestedAt: milestone.revisionRequestedAt,
+  });
   return reloadDetail(contractId);
 }
 
@@ -428,12 +475,28 @@ export async function completeContract(
       const doc = await completeContractCore(contractId, clientId, session);
       completedId = doc._id.toString();
     });
-    return reloadDetail(completedId);
+    const detail = await reloadDetail(completedId);
+    await notifyContractCompleted({
+      clientId: detail.client.id,
+      freelancerId: detail.freelancer.id,
+      contractId: detail.id,
+      jobTitle: detail.job.title,
+      actorId: clientId,
+    });
+    return detail;
   } catch (error) {
     if (isTransactionUnsupported(error)) {
       logger.warn('MongoDB transactions unavailable — completing contract without session');
       await completeContractCore(contractId, clientId);
-      return reloadDetail(contractId);
+      const detail = await reloadDetail(contractId);
+      await notifyContractCompleted({
+        clientId: detail.client.id,
+        freelancerId: detail.freelancer.id,
+        contractId: detail.id,
+        jobTitle: detail.job.title,
+        actorId: clientId,
+      });
+      return detail;
     }
     throw error;
   } finally {
@@ -489,7 +552,16 @@ export async function cancelContract(
     { $set: { status: 'closed' } },
   );
 
-  return reloadDetail(contractId);
+  const detail = await reloadDetail(contractId);
+  const otherPartyId =
+    detail.client.id === userId ? detail.freelancer.id : detail.client.id;
+  await notifyContractCancelled({
+    otherPartyId,
+    actorId: userId,
+    contractId: detail.id,
+    jobTitle: detail.job.title,
+  });
+  return detail;
 }
 
 export function getContractProgress(contract: IContractDocument) {

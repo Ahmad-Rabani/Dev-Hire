@@ -22,6 +22,7 @@ export type Job = {
   status: JobStatus;
   moderationStatus?: JobModerationStatus;
   client: JobClientSummary;
+  attachmentUploadIds?: string[];
   createdAt: string;
   updatedAt: string;
 };
@@ -63,6 +64,7 @@ export type CreateJobInput = {
   currency?: string;
   deadline: string;
   status?: 'draft' | 'open';
+  attachmentUploadIds?: string[];
 };
 
 export type UpdateJobInput = Partial<

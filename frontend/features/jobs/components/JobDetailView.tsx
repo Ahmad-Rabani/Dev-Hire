@@ -1,10 +1,12 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Spin, Tag } from 'antd';
+import { Alert, App, Button, Spin, Tag } from 'antd';
 import Link from 'next/link';
+import { useState } from 'react';
 import { getApiErrorMessage } from '@/lib/api-client';
 import { getJob } from '@/services/jobs.service';
+import { downloadUpload } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth-store';
 import { JobProposalPanel } from '@/features/proposals/components/JobProposalPanel';
 import { ReportButton } from '@/features/reports/components/ReportButton';
@@ -105,7 +107,43 @@ export function JobDetailView({ id }: JobDetailViewProps) {
         <p className="mt-3 whitespace-pre-wrap text-slate-700">{job.description}</p>
       </section>
 
+      {(job.attachmentUploadIds ?? []).length > 0 ? (
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-medium">Attachments</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Private files — only the job owner and contracted freelancer can download them.
+          </p>
+          <ul className="mt-3 space-y-1">
+            {job.attachmentUploadIds!.map((uploadId, index) => (
+              <li key={uploadId}>
+                <JobAttachmentButton uploadId={uploadId} label={`Attachment ${index + 1}`} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <JobProposalPanel job={job} />
     </article>
+  );
+}
+
+function JobAttachmentButton({ uploadId, label }: { uploadId: string; label: string }) {
+  const { message } = App.useApp();
+  const [loading, setLoading] = useState(false);
+  return (
+    <Button
+      type="link"
+      className="!px-0"
+      loading={loading}
+      onClick={() => {
+        setLoading(true);
+        void downloadUpload(uploadId, label)
+          .catch((error) => message.error(getApiErrorMessage(error)))
+          .finally(() => setLoading(false));
+      }}
+    >
+      {label}
+    </Button>
   );
 }

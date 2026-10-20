@@ -67,6 +67,7 @@ export function toPublicMilestone(m: IMilestone): PublicMilestone {
     status: m.status,
     submissionNotes: m.submissionNotes,
     deliverableUrl: m.deliverableUrl,
+    deliverableUploadIds: (m.deliverableUploadIds ?? []).map((id) => id.toString()),
     submittedAt: m.submittedAt?.toISOString(),
     revisionFeedback: m.revisionFeedback,
     revisionRequestedAt: m.revisionRequestedAt?.toISOString(),

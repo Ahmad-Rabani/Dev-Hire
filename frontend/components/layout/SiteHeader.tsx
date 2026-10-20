@@ -3,6 +3,7 @@
 import { App, Button, Dropdown } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { logout } from '@/services/auth.service';
 import { useAuthStore } from '@/stores/auth-store';
 import { getApiErrorMessage } from '@/lib/api-client';
@@ -78,9 +79,14 @@ export function SiteHeader() {
                   <Button type="text">Admin</Button>
                 </Link>
               ) : null}
+              <NotificationBell />
               <Dropdown
                 menu={{
                   items: [
+                    {
+                      key: 'notifications',
+                      label: <Link href="/notifications">Notifications</Link>,
+                    },
                     {
                       key: 'logout',
                       label: 'Log out',

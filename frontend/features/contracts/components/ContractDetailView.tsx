@@ -17,6 +17,7 @@ import {
 import Link from 'next/link';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { FileUploadField } from '@/components/uploads/FileUploadField';
 import { getApiErrorMessage } from '@/lib/api-client';
 import {
   addMilestone,
@@ -30,6 +31,7 @@ import {
   requestMilestoneRevision,
   submitMilestone,
 } from '@/services/contracts.service';
+import { downloadUpload } from '@/services/upload.service';
 import { useAuthStore } from '@/stores/auth-store';
 import type { ContractDetail, Milestone } from '@/types/contract';
 import {
@@ -397,6 +399,9 @@ function MilestoneCard({
       submitMilestone(contract.id, milestone.id, {
         submissionNotes: values.submissionNotes,
         deliverableUrl: values.deliverableUrl || undefined,
+        deliverableUploadIds: values.deliverableUploadIds?.length
+          ? values.deliverableUploadIds
+          : undefined,
       }),
     onSuccess: async () => {
       setSubmitOpen(false);
@@ -472,6 +477,15 @@ function MilestoneCard({
               Deliverable link
             </a>
           ) : null}
+          {(milestone.deliverableUploadIds ?? []).length > 0 ? (
+            <ul className="mt-2 space-y-1">
+              {milestone.deliverableUploadIds!.map((uploadId, index) => (
+                <li key={uploadId}>
+                  <DeliverableDownloadButton uploadId={uploadId} label={`File ${index + 1}`} />
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       ) : null}
 
@@ -532,6 +546,7 @@ function MilestoneCard({
         destroyOnHidden
       >
         <SubmitForm
+          contractId={contract.id}
           submitting={submitMutation.isPending}
           onSubmit={async (values) => {
             await submitMutation.mutateAsync(values);
@@ -557,20 +572,46 @@ function MilestoneCard({
   );
 }
 
+function DeliverableDownloadButton({ uploadId, label }: { uploadId: string; label: string }) {
+  const { message } = App.useApp();
+  const [loading, setLoading] = useState(false);
+  return (
+    <Button
+      type="link"
+      className="!px-0"
+      loading={loading}
+      onClick={() => {
+        setLoading(true);
+        void downloadUpload(uploadId, label)
+          .catch((error) => message.error(getApiErrorMessage(error)))
+          .finally(() => setLoading(false));
+      }}
+    >
+      {label}
+    </Button>
+  );
+}
+
 function SubmitForm({
+  contractId,
   submitting,
   onSubmit,
 }: {
+  contractId: string;
   submitting: boolean;
   onSubmit: (values: SubmitMilestoneValues) => Promise<void>;
 }) {
+  const [files, setFiles] = useState<
+    import('@/services/upload.service').PublicUpload[]
+  >([]);
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<SubmitMilestoneValues>({
     resolver: zodResolver(submitMilestoneSchema),
-    defaultValues: { submissionNotes: '', deliverableUrl: '' },
+    defaultValues: { submissionNotes: '', deliverableUrl: '', deliverableUploadIds: [] },
   });
 
   return (
@@ -601,6 +642,23 @@ function SubmitForm({
           <p className="mt-1 text-sm text-red-600">{errors.deliverableUrl.message}</p>
         ) : null}
       </div>
+      <FileUploadField
+        purpose="milestone_deliverable"
+        resourceType="contract"
+        resourceId={contractId}
+        label="Deliverable files (optional)"
+        multiple
+        maxFiles={5}
+        value={files}
+        onChange={(next) => {
+          setFiles(next);
+          setValue(
+            'deliverableUploadIds',
+            next.map((f) => f.id),
+            { shouldDirty: true },
+          );
+        }}
+      />
       <Button type="primary" htmlType="submit" loading={submitting} block>
         Submit for review
       </Button>

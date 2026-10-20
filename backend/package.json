@@ -12,7 +12,8 @@
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "create-admin": "tsx scripts/create-admin.ts"
+    "create-admin": "tsx scripts/create-admin.ts",
+    "worker:email": "tsx scripts/email-worker.ts"
   },
   "engines": {
     "node": ">=20"

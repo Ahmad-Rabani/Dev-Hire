@@ -136,6 +136,43 @@
 
 Audit logging starts when Phase 6 is deployed; historical actions before that are not reconstructed.
 
+### notifications (Phase 7)
+
+| Field | Notes |
+|-------|-------|
+| recipient | User who owns the notification (always scoped in queries) |
+| actor | Optional user who caused the event |
+| type | Controlled enum (`proposal.submitted`, `milestone.approved`, …) |
+| title / message | Short display text |
+| resourceType / resourceId | Optional navigation target (`job`, `proposal`, `contract`, `milestone`, `review`) |
+| readAt | `null` until marked read |
+| dedupeKey | Unique sparse — prevents duplicate event noise |
+| timestamps | createdAt / updatedAt |
+
+**Indexes:** `{ recipient, createdAt: -1 }` (newest-first lists); `{ recipient, readAt, createdAt }` (unread filters); unique sparse `dedupeKey`.
+
+### uploads (Phase 7)
+
+| Field | Notes |
+|-------|-------|
+| owner | Uploader user id |
+| purpose | `avatar` \| `portfolio` \| `job_attachment` \| `milestone_deliverable` |
+| visibility | Derived from purpose (`public` for avatar/portfolio; `private` otherwise) |
+| storageKey | Server-generated opaque key (not a client path) |
+| originalName / mimeType / size | Sanitized metadata |
+| resourceType / resourceId | Optional association after ownership checks |
+
+Files live under `UPLOAD_DIR` (gitignored). Binary content is **not** embedded in User/Job/Contract documents — only ObjectId references (`attachmentUploadIds`, `deliverableUploadIds`, `avatarUrl`).
+
+### emailoutboxes (Phase 7)
+
+| Field | Notes |
+|-------|-------|
+| to / subject / text / html | Outbound message (no secrets in logs) |
+| status | `pending` \| `processing` \| `sent` \| `failed` |
+| attempts / maxAttempts / scheduledAt | Bounded retry with backoff |
+| dedupeKey | Unique sparse — worker-safe idempotency |
+
 ## Relationships
 
 ```text
@@ -145,6 +182,10 @@ Proposal (accepted) ── 1 Contract
 Contract ──< embedded Milestone
 Contract ──< Review >── User (reviewer / reviewee)
 User ──< RefreshSession
+User ──< Notification
+User ──< Upload
+Job.attachmentUploadIds → Upload
+Milestone.deliverableUploadIds → Upload
 ```
 
 ## Seed / admin

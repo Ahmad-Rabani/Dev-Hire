@@ -50,6 +50,10 @@ export const createJobSchema = withBudgetOrder(
       message: 'Deadline must be in the future',
     }),
     status: z.enum(['draft', 'open']).default('draft'),
+    attachmentUploadIds: z
+      .array(z.string().regex(/^[a-f\d]{24}$/i, 'Invalid upload id'))
+      .max(5)
+      .optional(),
   }),
 );
 
@@ -67,6 +71,10 @@ export const updateJobSchema = withBudgetOrder(
         .refine((date) => date.getTime() > Date.now(), {
           message: 'Deadline must be in the future',
         })
+        .optional(),
+      attachmentUploadIds: z
+        .array(z.string().regex(/^[a-f\d]{24}$/i, 'Invalid upload id'))
+        .max(5)
         .optional(),
     })
     .strict(),

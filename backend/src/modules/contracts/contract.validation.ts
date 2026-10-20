@@ -70,6 +70,10 @@ export const submitMilestoneSchema = z
         z.string().trim().url('deliverableUrl must be a valid URL').max(500),
       ])
       .optional(),
+    deliverableUploadIds: z
+      .array(z.string().regex(/^[a-f\d]{24}$/i, 'Invalid upload id'))
+      .max(5)
+      .optional(),
   })
   .strict();
 

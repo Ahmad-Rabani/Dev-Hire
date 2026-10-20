@@ -23,6 +23,8 @@ export interface IJob {
   moderatedAt?: Date | null;
   moderatedBy?: Types.ObjectId | null;
   client: Types.ObjectId;
+  /** Private job brief attachments (Upload ids). */
+  attachmentUploadIds?: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +61,14 @@ const jobSchema = new Schema<IJobDocument>(
     moderatedAt: { type: Date, default: null },
     moderatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     client: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    attachmentUploadIds: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'Upload' }],
+      default: [],
+      validate: {
+        validator: (ids: Types.ObjectId[]) => ids.length <= 5,
+        message: 'A job may have at most 5 attachments',
+      },
+    },
   },
   { timestamps: true },
 );

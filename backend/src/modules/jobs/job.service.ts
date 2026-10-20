@@ -1,4 +1,6 @@
+import { Types } from 'mongoose';
 import { badRequest, forbidden, notFound } from '../../utils/AppError';
+import { Upload } from '../uploads/upload.model';
 import { toPublicJob } from './job.mapper';
 import { Job } from './job.model';
 import {
@@ -19,6 +21,29 @@ import type {
 } from './job.validation';
 
 const CLIENT_POPULATE = { path: 'client', select: 'name avatarUrl' };
+
+async function assertOwnedJobAttachments(
+  clientId: string,
+  uploadIds: string[],
+  jobId?: string,
+): Promise<Types.ObjectId[]> {
+  if (uploadIds.length === 0) return [];
+  const uploads = await Upload.find({
+    _id: { $in: uploadIds },
+    owner: clientId,
+    purpose: 'job_attachment',
+  });
+  if (uploads.length !== uploadIds.length) {
+    throw badRequest('One or more job attachments are invalid or not owned by you');
+  }
+  if (jobId) {
+    await Upload.updateMany(
+      { _id: { $in: uploads.map((u) => u._id) } },
+      { $set: { resourceType: 'job', resourceId: new Types.ObjectId(jobId) } },
+    );
+  }
+  return uploads.map((u) => u._id);
+}
 
 type JobFilter = Record<string, unknown>;
 
@@ -112,6 +137,10 @@ async function listJobs(
 }
 
 export async function createJob(clientId: string, input: CreateJobInput): Promise<PublicJob> {
+  const attachmentIds = input.attachmentUploadIds
+    ? await assertOwnedJobAttachments(clientId, input.attachmentUploadIds)
+    : [];
+
   const job = await Job.create({
     title: input.title,
     description: input.description,
@@ -123,7 +152,15 @@ export async function createJob(clientId: string, input: CreateJobInput): Promis
     deadline: input.deadline,
     status: input.status,
     client: clientId,
+    attachmentUploadIds: attachmentIds,
   });
+
+  if (attachmentIds.length) {
+    await Upload.updateMany(
+      { _id: { $in: attachmentIds } },
+      { $set: { resourceType: 'job', resourceId: job._id } },
+    );
+  }
 
   await job.populate(CLIENT_POPULATE);
   return toPublicJob(job);
@@ -188,6 +225,13 @@ export async function updateJob(
   if (input.budgetMax !== undefined) job.budgetMax = input.budgetMax;
   if (input.currency !== undefined) job.currency = input.currency;
   if (input.deadline !== undefined) job.deadline = input.deadline;
+  if (input.attachmentUploadIds !== undefined) {
+    job.attachmentUploadIds = await assertOwnedJobAttachments(
+      clientId,
+      input.attachmentUploadIds,
+      jobId,
+    );
+  }
 
   if (job.budgetMin > job.budgetMax) {
     throw badRequest('Minimum budget cannot exceed maximum budget');

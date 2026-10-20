@@ -39,6 +39,7 @@ export function toPublicJob(job: IJobDocument): PublicJob {
     status: job.status,
     moderationStatus: job.moderationStatus ?? 'visible',
     client,
+    attachmentUploadIds: (job.attachmentUploadIds ?? []).map((id) => id.toString()),
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
   };

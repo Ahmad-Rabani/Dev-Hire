@@ -20,10 +20,14 @@ function isSmtpConfigured(): boolean {
  */
 export async function sendMail(input: SendMailInput): Promise<{ delivered: boolean }> {
   if (!isSmtpConfigured()) {
+    // Never log full verification/reset URLs or tokens — redact query strings.
+    const safePreview = isDevelopment
+      ? input.text.replace(/\?token=[^\s)]+/gi, '?token=[redacted]')
+      : undefined;
     logger.warn('SMTP not configured — email not delivered', {
       to: input.to,
       subject: input.subject,
-      preview: isDevelopment ? input.text : undefined,
+      preview: safePreview,
     });
     return { delivered: false };
   }
