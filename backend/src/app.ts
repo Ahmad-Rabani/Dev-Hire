@@ -6,8 +6,10 @@ import morgan from 'morgan';
 import { env, isDevelopment } from './config/env';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { authRouter } from './modules/auth/auth.routes';
+import { contractsRouter } from './modules/contracts/contract.routes';
 import { healthRouter } from './modules/health/health.routes';
 import { jobsRouter } from './modules/jobs/job.routes';
+import { proposalsRouter } from './modules/proposals/proposal.routes';
 import { freelancersRouter, usersRouter } from './modules/users/user.routes';
 
 /**
@@ -54,6 +56,8 @@ export function createApp() {
   app.use('/api/v1/users', usersRouter);
   app.use('/api/v1/freelancers', freelancersRouter);
   app.use('/api/v1/jobs', jobsRouter);
+  app.use('/api/v1/proposals', proposalsRouter);
+  app.use('/api/v1/contracts', contractsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

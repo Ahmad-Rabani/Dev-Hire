@@ -55,14 +55,69 @@
 | `{ status: 1, deadline: 1 }` | Deadline sort/filter | Useful for “ending soon” sorts |
 | text on `title`, `description` | Reserved for future text-rank search | Current search uses validated regex `$or` (Atlas Search can replace later) |
 
+### proposals (Phase 4)
+
+| Field | Notes |
+|-------|-------|
+| job, freelancer | ObjectId refs |
+| coverLetter, bidAmount, deliveryDays | Validated |
+| status | `pending` \| `accepted` \| `rejected` \| `withdrawn` |
+
+**Indexes:** unique `{ job, freelancer }`; partial unique `{ job }` where `status: accepted`; freelancer/date and job/status lists.
+
+### contracts (Phase 4 create + Phase 5 lifecycle)
+
+| Field | Notes |
+|-------|-------|
+| job, client, freelancer, proposal | Refs; unique `job`, unique `proposal` |
+| amount | From accepted bid |
+| pricingType | Copied from job `budgetType` (`fixed` \| `hourly`) on hire |
+| status | `active` \| `completed` \| `cancelled` |
+| startDate / completedAt / cancelledAt / cancelReason | Lifecycle timestamps |
+| milestones[] | Embedded subdocuments (see below) |
+
+**Embedded milestones**
+
+| Field | Notes |
+|-------|-------|
+| title, description, amount, dueDate | Planning fields (client-owned while `pending`) |
+| status | `pending` → `submitted` ⇄ `revision_requested` → `approved` |
+| submissionNotes, deliverableUrl, submittedAt | Freelancer submission |
+| revisionFeedback, revisionRequestedAt | Client revision request |
+| approvedAt | Client approval timestamp |
+
+**Milestone amount rules**
+
+- **Fixed-price:** sum of milestone amounts must not exceed `contract.amount`; must **equal** `contract.amount` before completion.
+- **Hourly:** amounts are planning/tracking only — not treated as a fixed budget.
+
+**Progress:** `approvedMilestones / totalMilestones` (0% when empty; never auto-completes).
+
+**Indexes:** unique job; unique proposal; `{ client, status, createdAt }`; `{ freelancer, status, createdAt }`.
+
+### reviews (Phase 5)
+
+| Field | Notes |
+|-------|-------|
+| contract, reviewer, reviewee | ObjectId refs |
+| rating | Integer 1–5 |
+| comment | 10–2000 chars |
+| timestamps | createdAt / updatedAt |
+
+**Indexes:** unique `{ contract, reviewer }` (one review per person per contract; both parties may review); `{ reviewee, createdAt }` for public profile lists.
+
+**Rating aggregation:** after each review create, `User.averageRating` for the reviewee is recalculated with `$avg` over Review documents (not client-writable). `completedContracts` increments on contract completion for both parties.
+
 ## Relationships
 
 ```text
 User (client) ──< Job
+Job ──< Proposal >── User (freelancer)
+Proposal (accepted) ── 1 Contract
+Contract ──< embedded Milestone
+Contract ──< Review >── User (reviewer / reviewee)
 User ──< RefreshSession
 ```
-
-Proposals / contracts arrive in Phase 4+.
 
 ## Seed / admin
 

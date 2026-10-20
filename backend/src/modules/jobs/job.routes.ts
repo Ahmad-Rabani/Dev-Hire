@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate, authorize } from '../../middleware/authenticate';
 import { optionalAuth } from '../../middleware/optionalAuth';
 import { validate } from '../../middleware/validate';
+import { jobProposalsRouter } from '../proposals/proposal.routes';
 import * as jobController from './job.controller';
 import {
   changeJobStatusSchema,
@@ -14,6 +15,9 @@ import {
 const jobsRouter = Router();
 
 jobsRouter.get('/', validate(jobListQuerySchema, 'query'), jobController.listPublicJobs);
+
+// Nested proposals: /api/v1/jobs/:jobId/proposals
+jobsRouter.use('/:jobId/proposals', jobProposalsRouter);
 
 jobsRouter.get(
   '/mine',

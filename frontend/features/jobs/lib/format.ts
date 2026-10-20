@@ -20,6 +20,7 @@ export const JOB_STATUS_COLORS: Record<
   draft: 'default',
   open: 'success',
   paused: 'warning',
+  in_progress: 'processing',
   closed: 'processing',
   cancelled: 'error',
 };

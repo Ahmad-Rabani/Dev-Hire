@@ -59,21 +59,44 @@ Build DevHire phase by phase. Do not mark a phase complete until the feature wor
 3. **Allowlisted sort** — never pass raw `sortBy` strings into MongoDB.
 4. **Public vs mine** — public listings force `status: open`; owners see drafts via `/jobs/mine` or authenticated `GET /jobs/:id`.
 
-## Phase 4 — Proposals
+## Phase 4 — Proposals *(complete)*
 
-- Submit / edit / withdraw
-- Accept / reject with concurrency-safe contract creation
-- Unique `(job, freelancer)` constraint
+- [x] Submit / edit / withdraw
+- [x] Client proposal review
+- [x] Accept / reject with contract creation
+- [x] Unique `(job, freelancer)` + one-accepted-per-job indexes
+- [x] Job `in_progress` after hire
+- [x] Frontend apply + proposal management pages
+- [x] Backend proposal tests
 
 **Learning focus:** business rules + transactions.
 
-## Phase 5 — Contracts, milestones, reviews
+### Phase 4 learning notes
 
-- Milestone submit / approve / reject
-- Completion rules
-- Reviews and rating aggregation
+1. **Unique compound index** — DB-level duplicate prevention beats a frontend “already applied” check.
+2. **Accept is multi-document** — proposal + job + other proposals + contract must stay consistent; use transactions when available, plus conditional updates and unique indexes.
+3. **Idempotent accept** — repeating accept on the same proposal returns the existing contract instead of creating a second hire.
+4. **Scope** — Phase 4 creates the contract shell only; milestones and payments are Phase 5.
+
+## Phase 5 — Contracts, milestones, reviews *(complete)*
+
+- [x] Contract list/detail with participant ACL
+- [x] Embedded milestones + status machine
+- [x] Submit / revise / approve workflows
+- [x] Progress from real milestone data
+- [x] Client completion + guarded cancellation
+- [x] Reciprocal reviews + unique index + rating avg
+- [x] Public freelancer reviews on profile
+- [x] Backend contract tests + docs
 
 **Learning focus:** status machines and derived stats.
+
+### Phase 5 learning notes
+
+1. **Embedded milestones** — milestones only live inside a contract, so embedding avoids extra joins and keeps ACL simple.
+2. **Approve ≠ pay** — approval means work accepted in the app; there is no escrow or transfer in Phase 5.
+3. **Compound unique reviews** — `{ contract, reviewer }` lets both parties review once; uniqueness on `contract` alone would block the reciprocal review.
+4. **Transactions** — completion updates contract + job + user counters; falls back to conditional updates on standalone MongoDB (no replica set).
 
 ## Phase 6 — Dashboards and admin
 

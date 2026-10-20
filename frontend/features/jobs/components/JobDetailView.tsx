@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { getApiErrorMessage } from '@/lib/api-client';
 import { getJob } from '@/services/jobs.service';
 import { useAuthStore } from '@/stores/auth-store';
+import { JobProposalPanel } from '@/features/proposals/components/JobProposalPanel';
 import { formatBudget, formatDate, JOB_STATUS_COLORS } from '../lib/format';
 
 type JobDetailViewProps = {
@@ -65,9 +66,12 @@ export function JobDetailView({ id }: JobDetailViewProps) {
               <Link href="/client/jobs">
                 <Button>My jobs</Button>
               </Link>
+              <Link href={`/client/jobs/${job.id}/proposals`}>
+                <Button type="primary">Proposals</Button>
+              </Link>
               {['draft', 'open', 'paused'].includes(job.status) ? (
                 <Link href={`/client/jobs/${job.id}/edit`}>
-                  <Button type="primary">Edit</Button>
+                  <Button>Edit</Button>
                 </Link>
               ) : null}
             </>
@@ -99,14 +103,7 @@ export function JobDetailView({ id }: JobDetailViewProps) {
         <p className="mt-3 whitespace-pre-wrap text-slate-700">{job.description}</p>
       </section>
 
-      {!isOwner && user?.role === 'freelancer' ? (
-        <Alert
-          type="info"
-          showIcon
-          message="Proposal submission arrives in Phase 4"
-          description="You can browse this job now. Applying will be available next."
-        />
-      ) : null}
+      <JobProposalPanel job={job} />
     </article>
   );
 }

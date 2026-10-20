@@ -109,6 +109,7 @@ export function ClientJobsManager() {
             { value: 'draft', label: 'Draft' },
             { value: 'open', label: 'Open' },
             { value: 'paused', label: 'Paused' },
+            { value: 'in_progress', label: 'In progress' },
             { value: 'closed', label: 'Closed' },
             { value: 'cancelled', label: 'Cancelled' },
           ]}
@@ -167,6 +168,9 @@ export function ClientJobsManager() {
               title: 'Actions',
               render: (_: unknown, job: Job) => (
                 <Space wrap size="small">
+                  <Link href={`/client/jobs/${job.id}/proposals`}>
+                    <Button size="small">Proposals</Button>
+                  </Link>
                   {['draft', 'open', 'paused'].includes(job.status) ? (
                     <Link href={`/client/jobs/${job.id}/edit`}>
                       <Button size="small">Edit</Button>

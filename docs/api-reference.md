@@ -122,7 +122,9 @@ Protected fields such as `role`, `status`, `emailVerified`, `averageRating`, and
 
 ### Status transitions
 
-`draft → open|cancelled` · `open → paused|closed|cancelled` · `paused → open|closed|cancelled` · `closed`/`cancelled` terminal.
+`draft → open|cancelled` · `open → paused|closed|cancelled` · `paused → open|closed|cancelled` · `in_progress` (set by proposal accept) · `closed`/`cancelled` terminal.
+
+Owner status endpoint cannot manually set `in_progress` — that happens only via hire.
 
 ### List response shape
 
@@ -161,6 +163,81 @@ Protected fields such as `role`, `status`, `emailVerified`, `averageRating`, and
 5. `POST /jobs/:id/status` with `{ "status": "paused" }`.
 6. As another client, `PATCH /jobs/:id` → expect **403**.
 7. As freelancer, `POST /jobs` → expect **403**.
+
+### Proposals (Phase 4)
+
+1. Client publishes an `open` job.
+2. Freelancer: `POST /jobs/:jobId/proposals` with cover letter, bid, delivery days.
+3. Duplicate submit → **409**.
+4. Client: `GET /jobs/:jobId/proposals`.
+5. Client: `POST /proposals/:id/accept` → contract created, job `in_progress`, other pending → `rejected`.
+6. Repeat accept on same proposal → idempotent success (same contract).
+7. Freelancer: `GET /users/me/proposals`, `POST /proposals/:id/withdraw` while pending.
+
+## Proposals (Phase 4)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `POST` | `/jobs/:jobId/proposals` | Freelancer | Submit proposal |
+| `GET` | `/jobs/:jobId/proposals` | Job owner | List proposals for a job |
+| `GET` | `/jobs/:jobId/proposals/mine` | Freelancer | Own proposal for that job (or null) |
+| `GET` | `/users/me/proposals` | Freelancer | Own submissions |
+| `GET` | `/proposals/:id` | Participant | Proposal detail |
+| `PATCH` | `/proposals/:id` | Owner freelancer | Edit pending proposal |
+| `POST` | `/proposals/:id/withdraw` | Owner freelancer | Withdraw pending |
+| `POST` | `/proposals/:id/accept` | Job owner | Hire + create contract |
+| `POST` | `/proposals/:id/reject` | Job owner | Reject pending |
+
+Statuses: `pending` → `accepted` \| `rejected` \| `withdrawn`.
+
+## Contracts, milestones & reviews (Phase 5)
+
+Authorization is always checked against the contract’s `client` / `freelancer` IDs from the database — never from the request body.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| `GET` | `/contracts` | Client/Freelancer | Own contracts (filter `?status=`, paginated) |
+| `GET` | `/contracts/:id` | Participant | Contract detail + milestones + progress |
+| `PATCH` | `/contracts/:id/complete` | Client | Complete when all milestones approved |
+| `POST` | `/contracts/:id/cancel` | Participant | Cancel while no advanced milestone work |
+| `POST` | `/contracts/:contractId/milestones` | Client | Add milestone |
+| `PATCH` | `/contracts/:contractId/milestones/:milestoneId` | Client | Edit pending milestone |
+| `DELETE` | `/contracts/:contractId/milestones/:milestoneId` | Client | Delete pending milestone |
+| `POST` | `.../milestones/:milestoneId/submit` | Freelancer | Submit / resubmit work |
+| `POST` | `.../milestones/:milestoneId/approve` | Client | Approve submitted work |
+| `POST` | `.../milestones/:milestoneId/request-revision` | Client | `{ "feedback" }` |
+| `POST` | `/contracts/:contractId/reviews` | Participant | Review after completion |
+| `GET` | `/contracts/:contractId/reviews` | Participant | List reviews on a contract |
+| `GET` | `/freelancers/:id/reviews` | Public | Public review list + average |
+
+### Completion prerequisites
+
+1. Contract `active`
+2. At least one milestone
+3. Every milestone `approved`
+4. Fixed-price: planned milestone sum equals contract amount
+5. Only the **client** may complete
+
+On success: contract → `completed`, job `in_progress` → `closed`, both users `completedContracts++` (transaction when replica set available).
+
+### Cancellation
+
+Either participant may cancel an `active` contract with `{ "reason" }` only if every milestone is still `pending` (or there are none). Submitted / revision / approved work blocks cancellation.
+
+### Milestone transitions
+
+`pending` → `submitted` → `approved`  
+`submitted` → `revision_requested` → `submitted` → …
+
+### Postman / manual (Phase 5)
+
+1. Hire via Phase 4 accept → note `contract.id`.
+2. Client: `POST /contracts/:id/milestones` until fixed amounts sum to contract amount.
+3. Freelancer: `POST .../submit` with notes (+ optional URL).
+4. Client: `POST .../request-revision` then freelancer resubmits; or `POST .../approve`.
+5. Client: `PATCH /contracts/:id/complete`.
+6. Both: `POST /contracts/:id/reviews` with rating 1–5 + comment; duplicate → **409**.
+7. Public: `GET /freelancers/:freelancerId/reviews`.
 
 ## CSRF note
 

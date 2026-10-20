@@ -1,5 +1,5 @@
 export type BudgetType = 'fixed' | 'hourly';
-export type JobStatus = 'draft' | 'open' | 'paused' | 'closed' | 'cancelled';
+export type JobStatus = 'draft' | 'open' | 'paused' | 'in_progress' | 'closed' | 'cancelled';
 export type JobSortField = 'createdAt' | 'deadline' | 'budgetMin' | 'title';
 
 export type JobClientSummary = {

@@ -1,4 +1,5 @@
 import rateLimit from 'express-rate-limit';
+import { env } from '../config/env';
 
 /** Shared factory for abuse-sensitive auth endpoints. */
 export function createAuthRateLimiter(options?: {
@@ -11,6 +12,8 @@ export function createAuthRateLimiter(options?: {
     max: options?.max ?? 20,
     standardHeaders: true,
     legacyHeaders: false,
+    // Automated tests register many users quickly.
+    skip: () => env.NODE_ENV === 'test',
     message: {
       success: false,
       message: options?.message ?? 'Too many requests. Please try again later.',

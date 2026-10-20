@@ -43,9 +43,24 @@ export function SiteHeader() {
           {status === 'authenticated' && user ? (
             <>
               {user.role === 'client' ? (
-                <Link href="/client/jobs">
-                  <Button type="text">My jobs</Button>
-                </Link>
+                <>
+                  <Link href="/client/jobs">
+                    <Button type="text">My jobs</Button>
+                  </Link>
+                  <Link href="/client/contracts">
+                    <Button type="text">Contracts</Button>
+                  </Link>
+                </>
+              ) : null}
+              {user.role === 'freelancer' ? (
+                <>
+                  <Link href="/freelancer/proposals">
+                    <Button type="text">My proposals</Button>
+                  </Link>
+                  <Link href="/freelancer/contracts">
+                    <Button type="text">Contracts</Button>
+                  </Link>
+                </>
               ) : null}
               <Link href={dashboardPathForRole(user.role)}>
                 <Button type="text">My profile</Button>
