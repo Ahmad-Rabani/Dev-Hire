@@ -1,45 +1,76 @@
 # DevHire
 
-A production-minded freelance marketplace that connects **clients**, **freelancers**, and **admins**.
+**DevHire** is a full-stack freelance marketplace where **clients** post jobs, **freelancers** submit proposals, clients hire, and both parties manage **contracts**, **milestones**, and **reviews**. An **admin** role supports moderation, reports, and audit history.
 
-This monorepo keeps the frontend and backend as separate applications so each can be installed, run, tested, and deployed independently.
+This repository is a learning and portfolio project (Phases 1–9). It demonstrates real authorization, MongoDB constraints, aggregations, notifications, email outbox, and secure uploads — not a commercial product with live customers.
 
 ```text
 DevHire/
-├── frontend/   # Next.js (App Router) + React + TypeScript
-├── backend/    # Express + TypeScript + MongoDB
-└── docs/       # Architecture, schema, API, roadmap
+├── frontend/   # Next.js 16 (App Router) + React 19 + TypeScript
+├── backend/    # Express 5 + TypeScript + MongoDB/Mongoose
+├── docs/       # Architecture, API, demo, interview, deployment
+└── .github/    # CI (lint, typecheck, test, build — no auto-deploy)
 ```
 
-## Why separate apps?
+## Implemented features
 
-| Concern | Frontend | Backend |
-|---------|----------|---------|
-| Responsibility | UI, forms, client caching | Auth, business rules, data |
-| Deploy | Vercel (or similar) | Node host (Render, Railway, etc.) |
-| Talks via | HTTP + Socket.IO client | REST `/api/v1` + Socket.IO server |
+| Area | What works |
+|------|------------|
+| Auth | Register/login, JWT access + HttpOnly refresh rotation, email verify / password reset hooks, suspension checks |
+| Profiles | Client & freelancer profiles, public freelancer pages, portfolio fields |
+| Jobs | Create/edit, public search/filter/sort/pagination, ownership rules, moderation status |
+| Proposals | Submit, withdraw, accept/reject; unique freelancer-per-job; one accepted hire per job |
+| Contracts | Initial contract on accept, milestones, submit/revision/approve, complete/cancel |
+| Reviews | Bidirectional reviews after completion, unique per reviewer+contract, average rating |
+| Dashboards | Client / freelancer / admin aggregations |
+| Admin | User suspend, job moderation, reports, audit logs |
+| Notifications | MongoDB persistence + Socket.IO `notification:new` to private rooms |
+| Email | Nodemailer + outbox worker (requires SMTP for real delivery) |
+| Uploads | Magic-byte validation, metadata ACL, local disk or S3-compatible driver |
+| Quality | Vitest/Supertest API tests, frontend unit tests, ESLint, TypeScript, CI |
 
-Keeping API routes out of Next.js means authorization, validation, and database logic live in one place — the Express backend — which matches how most real marketplaces are structured.
+## Honest limitations
 
-## Prerequisites
+- **SMTP**: real inbox delivery needs configured credentials and has not been verified against a live provider in this handoff.
+- **S3**: `STORAGE_DRIVER=s3` adapter exists; a live bucket round-trip is **unverified** without your credentials.
+- **Malware scanning**: not implemented — type/size checks only.
+- **Multi-instance Socket.IO**: single-instance in-memory adapter is the supported default; Redis adapter is documented, not wired.
+- **Browser E2E**: no Playwright suite; critical flows are covered by API integration tests.
+- **Deployment**: guides exist; this project has **not** been claimed as deployed to production here.
 
-- Node.js 20+ (22 recommended)
-- npm 10+
-- MongoDB (local or [MongoDB Atlas](https://www.mongodb.com/atlas))
+## Technology stack (from package manifests)
 
-## Quick start
+**Frontend:** Next.js 16, React 19, TypeScript, Ant Design 6, TanStack Query 5, Axios, React Hook Form, Zod, Zustand, Socket.IO client, Vitest + Testing Library.
+
+**Backend:** Express 5, TypeScript, Mongoose 9, Zod, JWT, bcryptjs, Helmet, CORS, express-rate-limit, Multer, Nodemailer, Socket.IO, optional `@aws-sdk/client-s3`, Vitest + Supertest + mongodb-memory-server.
+
+**Database:** MongoDB (local or Atlas).
+
+## Architecture (short)
+
+The **frontend** is presentation and client caching. The **backend** owns authentication, authorization, validation, and persistence. They talk over REST (`/api/v1`) and Socket.IO. Security decisions are never trusted from the UI alone.
+
+Details and Mermaid diagrams: [docs/architecture.md](docs/architecture.md) · Schema: [docs/database-schema.md](docs/database-schema.md) · API: [docs/api-reference.md](docs/api-reference.md)
+
+## Local setup
+
+**Prerequisites:** Node.js 20+ (22 recommended), npm 10+, MongoDB local or Atlas.
 
 ### 1. Backend
 
 ```bash
 cd backend
 cp .env.example .env
-# Edit MONGODB_URI if needed
+# Set MONGODB_URI (default mongodb://127.0.0.1:27017/devhire)
 npm install
+npm run seed:demo          # optional synthetic accounts
+npm run create-admin -- --email admin@devhire.local --password 'AdminPass1' --name 'Platform Admin'
 npm run dev
 ```
 
-Health check: [http://localhost:5000/api/v1/health](http://localhost:5000/api/v1/health)
+- Health: http://localhost:5000/api/v1/health  
+- Leave SMTP blank for local work without mail.  
+- Email worker: inline by default (`EMAIL_WORKER_MODE=inline`). For a separate process: `EMAIL_WORKER_MODE=external` then `npm run worker:email`.
 
 ### 2. Frontend
 
@@ -50,60 +81,59 @@ npm install
 npm run dev
 ```
 
-App: [http://localhost:3001](http://localhost:3001)
+App: http://localhost:3001 (port **3001** on purpose).
 
-> **Note:** This project uses port **3001** for the frontend so it does not collide with other apps commonly bound to port 3000.
+### Demo accounts (after `npm run seed:demo`)
 
-## Documentation
+| Role | Email | Password |
+|------|-------|----------|
+| Client | `demo-client@devhire.demo` | `DemoPass1!` |
+| Freelancer | `demo-freelancer@devhire.demo` | `DemoPass1!` |
+
+These are **local synthetic** accounts only. Provision admin with `create-admin` (never via public register).
+
+### Quality commands
+
+```bash
+# Backend
+cd backend
+npm run lint
+npm run typecheck
+npm test
+npm run build
+
+# Frontend
+cd frontend
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+CI: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the same class of checks on push/PR (no deploy).
+
+## Documentation map
 
 | Doc | Purpose |
 |-----|---------|
-| [docs/architecture.md](docs/architecture.md) | System design and folder responsibilities |
-| [docs/database-schema.md](docs/database-schema.md) | Collections, relationships, indexes |
-| [docs/api-reference.md](docs/api-reference.md) | REST endpoints and response shapes |
-| [docs/development-roadmap.md](docs/development-roadmap.md) | Phased build plan and learning notes |
+| [docs/demo-script.md](docs/demo-script.md) | 5–8 minute interview demo |
+| [docs/portfolio-case-study.md](docs/portfolio-case-study.md) | Case study narrative |
+| [docs/interview-preparation.md](docs/interview-preparation.md) | Explain decisions in interviews |
+| [docs/portfolio-summary.md](docs/portfolio-summary.md) | CV / GitHub / spoken blurbs |
+| [docs/deployment.md](docs/deployment.md) | Production checklist (do not assume deployed) |
+| [docs/screenshots/README.md](docs/screenshots/README.md) | Screenshot capture checklist |
+| [docs/playwright-future.md](docs/playwright-future.md) | Why browser E2E is deferred |
+| [docs/development-roadmap.md](docs/development-roadmap.md) | Phases 1–9 learning path |
 
-## Development phases
+## Project status
 
-1. Foundation — project setup, health API, docs
-2. Authentication and profiles
-3. Jobs
-4. Proposals
-5. Contracts, milestones, and reviews
-6. Dashboards and administration
-7. Notifications, email, and uploads
-8. **Production hardening, CI, and deployment readiness** *(current)*
-9. Portfolio polish and launch
+Phases **1–8** built the product and hardening. Phase **9** adds portfolio docs, demo seed, and interview materials.
 
-See [docs/development-roadmap.md](docs/development-roadmap.md) and [docs/deployment.md](docs/deployment.md).
+Phase 8 local checks were reported passing in that handoff (**backend 34 tests**, **frontend 4 tests**, lint/typecheck/build). Phase 9 re-runs checks at the end of the finalization pass — see the Phase 9 report in chat / commit notes. Compilation and CI readiness are **not** proof of a production deployment.
 
-## Scripts overview
+## Security reminders
 
-| Location | Command | What it does |
-|----------|---------|--------------|
-| `backend` | `npm run dev` | Start API + Socket.IO + in-process email worker |
-| `backend` | `npm run worker:email` | Dedicated email outbox worker (optional) |
-| `backend` | `npm run lint` | ESLint flat config |
-| `backend` | `npm run build` | Compile TypeScript to `dist/` |
-| `backend` | `npm start` | Run compiled server |
-| `backend` | `npm test` | Vitest API tests |
-| `frontend` | `npm run lint` | Next.js ESLint |
-| `frontend` | `npm run typecheck` | TypeScript check |
-| `frontend` | `npm run build` | Production build |
-| `frontend` | `npm run start` | Serve production build |
-| `frontend` | `npm test` | Vitest UI tests |
-
-### Local notes (Phases 7–8)
-
-- Copy `backend/.env.example` → `.env`. Leave SMTP blank for local work without mail.
-- Uploads: `STORAGE_DRIVER=local` → `backend/uploads/` (gitignored). Production: `s3`.
-- Socket URL: `NEXT_PUBLIC_SOCKET_URL=http://localhost:5000` in `frontend/.env.local`.
-- CI: `.github/workflows/ci.yml` runs lint/typecheck/test/build (no deploy).
-
-## Security notes
-
-- Never commit `.env` files or real credentials.
-- Admin accounts are **not** creatable via public registration (Phase 2+).
-- All protected operations are enforced on the backend, not only in the UI.
-- Upload validation checks extensions + magic bytes; it is **not** malware scanning.
+- Never commit `.env` or real credentials.
+- Admins are not creatable via public registration.
+- Upload checks are not malware scanning.
 - Production JWT secrets must not use development defaults (enforced at startup).

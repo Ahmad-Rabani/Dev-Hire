@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "create-admin": "tsx scripts/create-admin.ts",
+    "seed:demo": "tsx scripts/seed-demo.ts",
     "worker:email": "tsx scripts/email-worker.ts"
   },
   "engines": {

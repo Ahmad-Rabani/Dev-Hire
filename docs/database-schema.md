@@ -175,24 +175,116 @@ Files live under `UPLOAD_DIR` (gitignored). Binary content is **not** embedded i
 
 ## Relationships
 
-```text
-User (client) ──< Job
-Job ──< Proposal >── User (freelancer)
-Proposal (accepted) ── 1 Contract
-Contract ──< embedded Milestone
-Contract ──< Review >── User (reviewer / reviewee)
-User ──< RefreshSession
-User ──< Notification
-User ──< Upload
-Job.attachmentUploadIds → Upload
-Milestone.deliverableUploadIds → Upload
+### Entity relationship diagram (Mermaid)
+
+```mermaid
+erDiagram
+  USER ||--o{ JOB : posts
+  USER ||--o{ PROPOSAL : submits
+  USER ||--o{ CONTRACT : "client or freelancer"
+  USER ||--o{ REVIEW : "reviewer or reviewee"
+  USER ||--o{ NOTIFICATION : receives
+  USER ||--o{ UPLOAD : owns
+  USER ||--o{ REFRESHSESSION : has
+  USER ||--o{ REPORT : reports
+  USER ||--o{ AUDITLOG : "admin actor"
+
+  JOB ||--o{ PROPOSAL : receives
+  JOB ||--o| CONTRACT : "at most one"
+  JOB }o--o{ UPLOAD : "attachmentUploadIds"
+
+  PROPOSAL ||--o| CONTRACT : "accepted → one"
+
+  CONTRACT ||--|{ MILESTONE : embeds
+  CONTRACT ||--o{ REVIEW : has
+  MILESTONE }o--o{ UPLOAD : "deliverableUploadIds"
+
+  USER {
+    ObjectId id
+    string email UK
+    string role
+    string status
+    number averageRating
+    number completedContracts
+  }
+
+  JOB {
+    ObjectId id
+    ObjectId client
+    string status
+    string moderationStatus
+  }
+
+  PROPOSAL {
+    ObjectId id
+    ObjectId job
+    ObjectId freelancer
+    string status
+  }
+
+  CONTRACT {
+    ObjectId id
+    ObjectId job UK
+    ObjectId proposal UK
+    string status
+  }
+
+  MILESTONE {
+    string title
+    string status
+    number amount
+  }
+
+  REVIEW {
+    ObjectId contract
+    ObjectId reviewer
+    number rating
+  }
+
+  NOTIFICATION {
+    ObjectId recipient
+    string type
+    string dedupeKey
+  }
+
+  UPLOAD {
+    ObjectId owner
+    string purpose
+    string storageKey UK
+    string visibility
+  }
 ```
+
+### Embed vs reference (why)
+
+| Choice | Example | Reason |
+|--------|---------|--------|
+| **Reference** | Job.client → User | Users are shared across many jobs; profile updates stay centralized |
+| **Reference** | Proposal.job / freelancer | Many proposals per job; unique `{ job, freelancer }` |
+| **Reference + unique** | Contract.job, Contract.proposal | Enforce one hire outcome |
+| **Embedded** | Contract.milestones[] | Milestones only make sense inside one contract; loaded with the parent |
+| **Reference ids** | deliverableUploadIds | Files stay in upload storage; ACL checked separately |
+| **Derived** | User.averageRating, completedContracts | Recalculated by services — not client-writable |
+
+### Duplicate prevention (indexes that interviewers care about)
+
+| Invariant | Enforcement |
+|-----------|-------------|
+| One proposal per freelancer per job | unique `{ job, freelancer }` |
+| At most one **accepted** proposal per job | partial unique on `{ job }` where `status: accepted` |
+| One contract per job / per accepted proposal | unique `job`, unique `proposal` on Contract |
+| One review per reviewer per contract | unique `{ contract, reviewer }` |
+| Notification / email idempotency | unique sparse `dedupeKey` |
 
 ## Seed / admin
 
 ```bash
 cd backend
+# Synthetic client + freelancer + open job + pending proposal (refuses production)
+npm run seed:demo
+
+# Controlled admin (idempotent if same email already admin)
 npm run create-admin -- --email admin@devhire.local --password 'AdminPass1' --name 'Platform Admin'
 ```
 
-Never commit real production passwords.
+Never commit real production passwords. Demo passwords in `seed-demo` are for **local interview demos only**.

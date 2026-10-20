@@ -157,11 +157,23 @@ Build DevHire phase by phase. Do not mark a phase complete until the feature wor
 4. **Ephemeral disks lose uploads** — local storage is for development; production needs object storage.
 5. **CI validates; humans deploy** — automated checks should not push to production by default.
 
-## Phase 9 — Portfolio polish & launch
+## Phase 9 — Portfolio finalization *(complete)*
 
-- Final accessibility / responsive pass on real devices
-- Optional monitoring (uptime, error reporting)
-- Public demo environment with seed data (no real user PII)
+- [x] Recruiter-oriented root README with honest limitations
+- [x] Mermaid architecture + ER diagrams in existing docs
+- [x] Idempotent `npm run seed:demo` (refuses production)
+- [x] Demo script, case study, interview guide, CV blurbs
+- [x] Screenshot checklist (manual capture)
+- [x] Playwright deferred with rationale (`docs/playwright-future.md`)
+
+**Learning focus:** explaining your own system clearly under interview pressure.
+
+### Phase 9 learning notes
+
+1. **Documentation is part of the product** for junior portfolios — recruiters skim README first.
+2. **Honesty builds trust** — unverified SMTP/S3 is a strength when you can explain the adapter and outbox.
+3. **Demo seed ≠ production data** — synthetic `@devhire.demo` emails and a production refuse-guard.
+4. **Know one vertical slice cold** — proposal accept → contract → notification is enough to prove depth.
 
 ---
 

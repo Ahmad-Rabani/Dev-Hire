@@ -1,6 +1,6 @@
 # DevHire Backend
 
-Express + TypeScript API for the DevHire freelance marketplace (Phases 1–8).
+Express + TypeScript API for the DevHire freelance marketplace (Phases 1–9).
 
 ## Setup
 
@@ -23,6 +23,7 @@ Ensure MongoDB is running, or set `MONGODB_URI` to an Atlas connection string.
 | `npm run lint` | ESLint (flat config) |
 | `npm test` | Vitest + Supertest |
 | `npm run create-admin` | Provision an admin account |
+| `npm run seed:demo` | Idempotent local demo users/job/proposal (blocks production) |
 
 ## Health
 
